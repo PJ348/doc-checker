@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Format Checker Sign Up</title>
+    <link href="../src/output.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+</head>
+
+<body style="font-family: 'Sarabun', sans-serif;" class="bg-slate-100 flex items-center justify-center min-h-screen">
+
+    <!-- Card Container -->
+    <div
+        class="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden min-h-[500px]">
+
+        <!-- Left Panel (Blue) -->
+        <div class="w-full md:w-5/12 bg-[#213f8c] p-10 md:p-14 flex flex-col justify-center">
+            <h1 class="text-white text-3xl font-bold mb-4 leading-snug">
+                AI Document<br>Format Checker
+            </h1>
+            <p class="text-blue-100 text-sm font-light leading-relaxed">
+                ระบบตรวจสอบรูปแบบเอกสารโครงงาน<br>ด้วย AI
+            </p>
+        </div>
+
+        <!-- Right Panel (Login Form) -->
+        <div class="w-full md:w-7/12 p-10 md:p-16 flex flex-col justify-center">
+            <h2 class="text-3xl font-extrabold text-[#213f8c] mb-10">สร้างบัญชีผู้ใช้</h2>
+
+            <form action="#" method="POST">
+                <!-- Name Row -->
+                <div class="flex flex-col sm:flex-row gap-4 mb-5">
+                    <div class="w-full sm:w-1/2">
+                        <label for="firstname" class="block text-sm text-gray-500 mb-2 font-medium">ชื่อ <span class="text-red-500">*</span> <span id="first_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกชื่อ</span></label>
+                        <input type="text" id="firstname"
+                            class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
+                            required>
+                        <!-- <p id="first_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกชื่อ</p> -->
+                    </div>
+                    <div class="w-full sm:w-1/2">
+                        <label for="lastname" class="block text-sm text-gray-500 mb-2 font-medium">นามสกุล <span class="text-red-500">*</span> <span id="last_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกนามสกุล</span></label>
+                        <input type="text" id="lastname"
+                            class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
+                            required>
+                        <!-- <p id="last_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกนามสกุล</p> -->
+                    </div>
+                </div>
+
+                <!-- Email Input -->
+                <div class="mb-5">
+                    <label for="email" class="block text-sm text-gray-500 mb-2 font-medium">อีเมล <span class="text-red-500">*</span> <span id="email_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกอีเมล</span></label>
+                    <input type="email" id="email"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
+                        required>
+                    <!-- <p id="email_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกอีเมล</p> -->
+                </div>
+
+                <!-- Password Input -->
+                <div class="mb-5">
+                    <label for="password" class="block text-sm text-gray-500 mb-2 font-medium">รหัสผ่าน <span class="text-red-500">*</span> <span id="password_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกรหัสผ่าน</span></label>
+                    <input type="password" id="password"
+                        class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
+                        required>
+                    <!-- <p id="password_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกรหัสผ่าน</p> -->
+                </div>
+
+                <!-- Role Selector (Segmented Control) -->
+                <div class="mb-5">
+                    <label class="block text-sm text-gray-500 mb-2 font-medium">เลือกสิทธิ์การใช้งาน <span class="text-red-500">*</span></label>
+                   
+                    <div class="p-0.5 rounded-lg flex text-sm border border-gray-100 bg-gray-100">
+                        <!-- ปุ่ม: นิสิต -->
+                        <label class="flex-1 text-center cursor-pointer relative">
+                            <!-- เปลี่ยน hidden เป็น sr-only ตรงนี้ครับ 👇 -->
+                            <input type="radio" name="role" value="1" class="peer sr-only" checked>
+                            <div
+                                class="py-1.5 rounded-lg peer-checked:bg-[#213f8c] peer-checked:text-white peer-checked:font-medium peer-checked:shadow-sm text-gray-600 text-base transition-all duration-200">
+                                นิสิต
+                            </div>
+                        </label>
+
+                        <!-- ปุ่ม: อาจารย์ -->
+                        <label class="flex-1 text-center cursor-pointer relative">
+                            <!-- เปลี่ยน hidden เป็น sr-only ตรงนี้ครับ 👇 -->
+                            <input type="radio" name="role" value="2" class="peer sr-only">
+                            <div
+                                class="py-1.5 rounded-lg peer-checked:bg-[#213f8c] peer-checked:text-white peer-checked:font-medium peer-checked:shadow-sm text-gray-600 text-base transition-all duration-200">
+                                อาจารย์
+                            </div>
+                        </label>
+
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="button" id="signup-btn"
+                    class="w-full bg-[#213f8c] mt-7 text-white font-semibold rounded-lg py-2.5 hover:bg-[#082570] transition-colors duration-200">
+                    สร้างบัญชี
+                </button>
+            </form>
+
+            <!-- Sign Up Link -->
+            <div class="mt-8 text-center text-sm text-gray-500">
+                มีบัญชีอยู่แล้ว? <a href="./index.html"
+                    class="text-[#213f8c] font-semibold hover:underline">เข้าสู่ระบบ</a>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- เรียกใช้ไฟล์ JavaScript แบบ module -->
+    <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/sign-up.js"></script>
+</body>
+
+</html>
