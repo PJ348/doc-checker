@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("พังที่ตาราง user_role:", roleError);
                 alert("สมัครสำเร็จ แต่บันทึกตำแหน่ง (Role) ไม่สำเร็จ");
             } else {
-                window.location.href = "./index.html";
+                window.location.href = "../index.html";
             }
         }
     });

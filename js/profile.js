@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (error) {
                 alert("เกิดข้อผิดพลาดในการออกจากระบบ");
             } else {
-                window.location.replace("./index.html");
+                window.location.replace("../index.html");
             }
         };
 
