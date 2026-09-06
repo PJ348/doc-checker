@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
     const signUpButton = document.getElementById("signup-btn");
     signUpButton.addEventListener("click", async () => {
 
@@ -59,7 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (email && !emailRegex.test(email)) {
-            const emailError = document.getElementById('email_error');
             emailError.innerText = "รูปแบบอีเมลไม่ถูกต้อง";
             emailError.classList.remove('hidden');
             isValid = false;
@@ -77,25 +75,18 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        console.log("ข้อมูลครบถ้วน กำลังสมัครสมาชิก...");
-        console.log("กำลังสมัครสมาชิก...");
+        // console.log("ข้อมูลครบถ้วน กำลังสมัครสมาชิก...");
+        // console.log("กำลังสมัครสมาชิก...");
 
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password
         });
 
-
         if (error) {
             if (error.status === 422 || error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
-    
-                document.getElementById('email').classList.add('border-red-500', 'focus:ring-red-500', 'bg-red-50');
-                const emailError = document.getElementById('email_error');
                 emailError.innerText = "อีเมลนี้มีผู้ใช้งานแล้ว กรุณาใช้อีเมลอื่น";
                 emailError.classList.remove('hidden');
-                
-                // เอา console.log ออกมาดูให้ชัวร์
-                console.log("ตรวจพบอีเมลซ้ำ:", error.message);
             } 
             else {
                 alert('เกิดข้อผิดพลาดในการสมัคร: ' + error.message);
