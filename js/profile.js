@@ -1,26 +1,19 @@
 document.addEventListener("DOMContentLoaded", async () => {
-
-    // 🌟 1. ดึงข้อมูล Session จาก Supabase ก่อนเป็นอันดับแรก
+  
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    // ถ้ายังไม่ได้ล็อกอิน หรือมี Error ให้หยุดการทำงานทันที
     if (sessionError || !session) {
         console.error("ไม่พบข้อมูลผู้ใช้งาน (ยังไม่ได้ล็อกอิน)");
         return;
     }
 
-    // 🌟 2. ตอนนี้ระบบรู้จัก session แล้ว ดึงค่ามาใช้ได้เลย
     const userId = session.user.id;
     const userEmail = session.user.email;
-    let currentAvatarUrl = ""; // เพิ่มตัวแปรกลางสำหรับเก็บรูปล่าสุดไปแสดงใน Modal
+    let currentAvatarUrl = "";
 
-    // ไอคอนสำหรับฝังในเมนู Dropdown (ใช้ currentColor ได้ปกติ)
-    // const defaultSvg = `<svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px" fill="currentColor"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm146.5-204.5Q340-521 340-580t40.5-99.5Q421-720 480-720t99.5 40.5Q620-639 620-580t-40.5 99.5Q539-440 480-440t-99.5-40.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm100-95.5q47-15.5 86-44.5-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160q53 0 100-15.5ZM523-537q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm-43-43Zm0 360Z" /></svg>`;
-
-    // ไอคอนสำหรับแสดงในรูปพรีวิว <img> (ระบุสี #94a3b8 ลงไปตรงๆ และขยายกรอบ viewBox เพื่อลดขนาดไอคอนลง)
     const modalSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-320 -1280 1600 1600" width="100%" height="100%" fill="#94a3b8"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm146.5-204.5Q340-521 340-580t40.5-99.5Q421-720 480-720t99.5 40.5Q620-639 620-580t-40.5 99.5Q539-440 480-440t-99.5-40.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm100-95.5q47-15.5 86-44.5-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160q53 0 100-15.5ZM523-537q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm-43-43Zm0 360Z" /></svg>`;
     const defaultSvgDataUrl = `data:image/svg+xml;utf8,` + encodeURIComponent(modalSvg);
 
-    // ฟังก์ชัน 1: โหลดข้อมูลและสร้าง UI โปรไฟล์
+    // โหลดข้อมูลและสร้าง UI โปรไฟล์
     const loadAndRenderProfile = async () => {
         // 🌟 1. เพิ่มการดึง avatar_url มาด้วย
         const { data: userData, error: userError } = await supabaseClient
@@ -35,16 +28,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             displayName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
         }
 
-        // 🌟 2. เช็กรูปภาพ (ถ้ามีรูปใช้รูป / ถ้าไม่มีใช้ SVG ไอคอนคน)
+        // เช็กรูปภาพถ้ามีรูปใช้รูป ถ้าไม่มีใช้ SVG ไอคอน
         const avatarUrl = userData?.avatar_url;
         let profileDisplay = "";
 
         if (avatarUrl) {
-            // กรณีมีรูปโปรไฟล์
             profileDisplay = `<img src="${avatarUrl}" alt="Profile" class="w-full h-full object-cover rounded-full">`;
             currentAvatarUrl = avatarUrl;
         } else {
-            // กรณีไม่มีรูป (แสดงไอคอนคนสีเทาที่อยู่ตรงtab barสีน้ำเงิน จะเป็นสีขาว)
             profileDisplay = `
                 <svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px" fill="currentColor">
                     <path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm146.5-204.5Q340-521 340-580t40.5-99.5Q421-720 480-720t99.5 40.5Q620-639 620-580t-40.5 99.5Q539-440 480-440t-99.5-40.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm100-95.5q47-15.5 86-44.5-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160q53 0 100-15.5ZM523-537q17-17 17-43t-17-43q-17-17-43-17t-43 17q-17 17-17 43t17 43q17 17 43 17t43-17Zm-43-43Zm0 360Z" />
@@ -56,7 +47,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const container = document.getElementById('profile-menu-container');
         if (!container) return;
 
-        // 🌟 3. เอาตัวแปร ${profileDisplay} ไปหยอดใส่แทนตัวย่อชื่อ
         container.innerHTML = `
             <button id="profile-btn" 
                 class="w-10 h-10 bg-[#93c5fd]/20 text-white flex items-center justify-center rounded-full hover:bg-[#93c5fd]/40 transition-colors cursor-pointer">
@@ -137,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
 
-    // ฟังก์ชัน 2: ระบบเปิดปิด Dropdown และ Log out
+    // เปิดปิด Dropdown และ Logout
     const setupProfileEvents = () => {
         const profileBtn = document.getElementById('profile-btn');
         const profileDropdown = document.getElementById('profile-dropdown');
@@ -163,12 +153,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (error) {
                 alert("เกิดข้อผิดพลาดในการออกจากระบบ");
             } else {
-                window.location.replace("./index.html");
+                window.location.replace("../index.html");
             }
         };
 
-
-        //ระบบ Modal แก้ไขรูปโปรไฟล์ ---
+        // แก้ไขรูปโปรไฟล์
         const modal = document.getElementById('avatar-modal');
         const previewImg = document.getElementById('avatar-preview');
         const fileInput = document.getElementById('modal-avatar-upload');
@@ -179,7 +168,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         let selectedFile = null;
         let isDeleting = false;
 
-
         if (openAvatarBtn) {
             openAvatarBtn.onclick = () => {
                 modal.classList.remove('hidden');
@@ -187,7 +175,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 isDeleting = false;
                 previewImg.src = currentAvatarUrl || defaultSvgDataUrl;
                 window.onclick = (e) => {
-
                     profileDropdown.classList.add('hidden');
                 };
             };
@@ -206,7 +193,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             };
         }
-        
 
         if (fileInput) {
             fileInput.onchange = (e) => {
@@ -230,17 +216,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (saveBtn) {
             saveBtn.onclick = async () => {
 
-                // กรณีลบรูป
+                // ลบรูป
                 if (isDeleting) {
                     saveBtn.innerText = "กำลังลบ...";
 
-                    // 🌟 1. ลบไฟล์จริงออกจาก Storage ก่อน
                     if (currentAvatarUrl) {
                         const oldFileName = currentAvatarUrl.split('/').pop(); // ดึงชื่อไฟล์เก่าจากลิงก์
                         await supabaseClient.storage.from('avatars').remove([oldFileName]);
                     }
 
-                    await supabaseClient.from('users').update({ avatar_url: null }).eq('user_id', userId);
+                    await supabaseClient
+                        .from('users')
+                        .update({ avatar_url: null })
+                        .eq('user_id', userId);
 
                     saveBtn.innerText = "บันทึก";
                     modal.classList.add('hidden');
@@ -248,7 +236,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
-                // ถ้าไม่ได้เปลี่ยนอะไร ปิด Modal เลย
                 if (!selectedFile) {
                     modal.classList.add('hidden');
                     return;
@@ -256,59 +243,48 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 saveBtn.innerText = "กำลังอัปโหลด...";
 
-                // 🌟 สั่งลบไฟล์เก่าทิ้งก่อน (ถ้ามีรูปเดิมอยู่)
+                // เปลี่ยนรูป
                 if (currentAvatarUrl) {
                     const oldFileName = currentAvatarUrl.split('/').pop();
                     await supabaseClient.storage.from('avatars').remove([oldFileName]);
                 }
 
-                // 1. สร้างชื่อไฟล์ให้ไม่ซ้ำกัน (ใช้ ID ผู้ใช้ + เวลา)
                 const fileExt = selectedFile.name.split('.').pop();
                 const fileName = `avatar-${userId}-${Date.now()}.${fileExt}`;
                 const bucketName = 'avatars';
 
-
-                // 2. อัปโหลดไฟล์ขึ้น Storage
                 const { error: uploadError } = await supabaseClient.storage
                     .from(bucketName)
                     .upload(fileName, selectedFile, {
                         upsert: true
                     });
 
-                // เช็ก Error สเตปที่ 1 (ตอนอัปโหลดไฟล์)
                 if (uploadError) {
                     alert("อัปโหลดรูปไม่สำเร็จ: " + uploadError.message);
                     saveBtn.innerText = "บันทึก";
-                    // document.body.style.cursor = "default"; // คืนค่าเคอร์เซอร์
                     return;
                 }
 
-                // 3. ดึงลิงก์ (Public URL) ของรูปที่เพิ่งอัปโหลด
                 const { data: publicUrlData } = supabaseClient.storage
                     .from(bucketName)
                     .getPublicUrl(fileName);
 
                 const newAvatarUrl = publicUrlData.publicUrl;
 
-                // 4. นำลิงก์ไปบันทึกลงคอลัมน์ avatar_url ในตาราง users
                 const { error: updateError } = await supabaseClient
                     .from('users')
                     .update({ avatar_url: newAvatarUrl })
                     .eq('user_id', userId);
 
-                // เช็ก Error สเตปที่ 2 (ตอนบันทึกลิงก์ลง Database)
                 if (updateError) {
                     alert("บันทึกลิงก์รูปล้มเหลว: " + updateError.message);
                     saveBtn.innerText = "บันทึก";
-                    // document.body.style.cursor = "default";
                     return;
                 }
                 saveBtn.innerText = "บันทึก";
                 modal.classList.add('hidden');
                 loadAndRenderProfile();
 
-                // คืนค่าเคอร์เซอร์กลับเป็นปกติเมื่อทำงานเสร็จหมด
-                // document.body.style.cursor = "default";
             };
         }
     };

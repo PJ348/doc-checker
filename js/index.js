@@ -95,11 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const roleId = roleData.role_id;
             if (roleId === 1) {
-                window.location.href = "./dashboard-student.html";
+                window.location.href = "./html/dashboard-student.html";
             } else if (roleId === 2) {
-                window.location.href = "./dashboard-teacher.html"; 
+                window.location.href = "./html/dashboard-teacher.html"; 
             } else if (roleId === 3) {
-                window.location.href = "./dashboard-admin.html"; 
+                window.location.href = "./html/dashboard-admin.html"; 
             } else {
                 alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
             }
