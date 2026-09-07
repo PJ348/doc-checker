@@ -40,14 +40,12 @@
                         <input type="text" id="firstname"
                             class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
                             required>
-                        <!-- <p id="first_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกชื่อ</p> -->
                     </div>
                     <div class="w-full sm:w-1/2">
                         <label for="lastname" class="block text-sm text-gray-500 mb-2 font-medium">นามสกุล <span class="text-red-500">*</span> <span id="last_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกนามสกุล</span></label>
                         <input type="text" id="lastname"
                             class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
                             required>
-                        <!-- <p id="last_name_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกนามสกุล</p> -->
                     </div>
                 </div>
 
@@ -57,7 +55,6 @@
                     <input type="email" id="email"
                         class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
                         required>
-                    <!-- <p id="email_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกอีเมล</p> -->
                 </div>
 
                 <!-- Password Input -->
@@ -66,7 +63,6 @@
                     <input type="password" id="password"
                         class="w-full border border-gray-200 rounded-lg px-4 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all"
                         required>
-                    <!-- <p id="password_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกรหัสผ่าน</p> -->
                 </div>
 
                 <!-- Role Selector (Segmented Control) -->
@@ -76,7 +72,6 @@
                     <div class="p-0.5 rounded-lg flex text-sm border border-gray-100 bg-gray-100">
                         <!-- ปุ่ม: นิสิต -->
                         <label class="flex-1 text-center cursor-pointer relative">
-                            <!-- เปลี่ยน hidden เป็น sr-only ตรงนี้ครับ 👇 -->
                             <input type="radio" name="role" value="1" class="peer sr-only" checked>
                             <div
                                 class="py-1.5 rounded-lg peer-checked:bg-[#213f8c] peer-checked:text-white peer-checked:font-medium peer-checked:shadow-sm text-gray-600 text-base transition-all duration-200">
@@ -86,7 +81,6 @@
 
                         <!-- ปุ่ม: อาจารย์ -->
                         <label class="flex-1 text-center cursor-pointer relative">
-                            <!-- เปลี่ยน hidden เป็น sr-only ตรงนี้ครับ 👇 -->
                             <input type="radio" name="role" value="2" class="peer sr-only">
                             <div
                                 class="py-1.5 rounded-lg peer-checked:bg-[#213f8c] peer-checked:text-white peer-checked:font-medium peer-checked:shadow-sm text-gray-600 text-base transition-all duration-200">
@@ -113,12 +107,9 @@
 
     </div>
 
-
-    <!-- เรียกใช้ไฟล์ JavaScript แบบ module -->
     <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/supabase.js"></script>
-    <script src="../js/sign-up.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="../js/sign-up.js"></script>
 </body>
 
 </html>

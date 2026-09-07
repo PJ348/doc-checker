@@ -1,3 +1,4 @@
+import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", () => {
 
     const inputFields = [
@@ -71,12 +72,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!isValid) {
-            console.log("ข้อมูลไม่ครบ หยุดการส่งข้อมูล!");
+            // console.log("ข้อมูลไม่ครบ หยุดการส่งข้อมูล!");
             return;
         }
 
-        // console.log("ข้อมูลครบถ้วน กำลังสมัครสมาชิก...");
-        // console.log("กำลังสมัครสมาชิก...");
+        console.log("ข้อมูลครบถ้วน กำลังสมัครสมาชิก...");
+        console.log("กำลังสมัครสมาชิก...");
 
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
@@ -131,5 +132,3 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
-
-const supabaseClient = window.supabaseClient;

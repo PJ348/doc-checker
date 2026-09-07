@@ -1,3 +1,4 @@
+import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", () => {
     
     const inputFields = [
