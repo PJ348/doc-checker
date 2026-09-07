@@ -1,3 +1,4 @@
+import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", async () => {
   
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
