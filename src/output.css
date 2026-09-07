@@ -285,9 +285,6 @@
   .z-\[100\] {
     z-index: 100;
   }
-  .col-span-full {
-    grid-column: 1 / -1;
-  }
   .container {
     width: 100%;
     @media (width >= 40rem) {
@@ -372,9 +369,6 @@
   .h-3 {
     height: calc(var(--spacing) * 3);
   }
-  .h-3\.5 {
-    height: calc(var(--spacing) * 3.5);
-  }
   .h-4 {
     height: calc(var(--spacing) * 4);
   }
@@ -401,9 +395,6 @@
   }
   .h-16 {
     height: calc(var(--spacing) * 16);
-  }
-  .h-20 {
-    height: calc(var(--spacing) * 20);
   }
   .h-28 {
     height: calc(var(--spacing) * 28);
@@ -434,9 +425,6 @@
   }
   .w-3 {
     width: calc(var(--spacing) * 3);
-  }
-  .w-3\.5 {
-    width: calc(var(--spacing) * 3.5);
   }
   .w-4 {
     width: calc(var(--spacing) * 4);
@@ -488,9 +476,6 @@
   }
   .max-w-\[280px\] {
     max-width: 280px;
-  }
-  .max-w-\[420px\] {
-    max-width: 420px;
   }
   .max-w-\[450px\] {
     max-width: 450px;
@@ -625,9 +610,6 @@
   .border-gray-200 {
     border-color: var(--color-gray-200);
   }
-  .border-red-500 {
-    border-color: var(--color-red-500);
-  }
   .bg-\[\#93c5fd\] {
     background-color: #93c5fd;
   }
@@ -646,9 +628,6 @@
   .bg-\[\#eaf1f8\] {
     background-color: #eaf1f8;
   }
-  .bg-\[\#eef2ff\] {
-    background-color: #eef2ff;
-  }
   .bg-black\/30 {
     background-color: color-mix(in srgb, #000 30%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -666,9 +645,6 @@
   }
   .bg-gray-100 {
     background-color: var(--color-gray-100);
-  }
-  .bg-red-50 {
-    background-color: var(--color-red-50);
   }
   .bg-red-100 {
     background-color: var(--color-red-100);
@@ -741,9 +717,6 @@
   }
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
-  }
-  .py-24 {
-    padding-block: calc(var(--spacing) * 24);
   }
   .pt-1 {
     padding-top: var(--spacing);
@@ -877,9 +850,6 @@
   }
   .text-\[\#213f8c\] {
     color: #213f8c;
-  }
-  .text-\[\#31307b\] {
-    color: #31307b;
   }
   .text-\[\#C81E1E\] {
     color: #C81E1E;
@@ -1068,9 +1038,6 @@
   .focus\:ring-\[\#213f8c\]:focus {
     --tw-ring-color: #213f8c;
   }
-  .focus\:ring-red-500:focus {
-    --tw-ring-color: var(--color-red-500);
-  }
   .focus\:outline-none:focus {
     --tw-outline-style: none;
     outline-style: none;
@@ -1087,9 +1054,6 @@
     }
     .sm\:mb-5 {
       margin-bottom: calc(var(--spacing) * 5);
-    }
-    .sm\:block {
-      display: block;
     }
     .sm\:max-h-\[300px\] {
       max-height: 300px;
