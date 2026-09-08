@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase.js';
-console.log("เริ่มรันไฟล์ Dashboard");
+// console.log("เริ่มรันไฟล์ Dashboard");
 document.addEventListener("DOMContentLoaded", async () => {
     const projectContainer = document.getElementById("project-container");
     const createBtn = document.getElementById("create-project-btn");
@@ -25,7 +25,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     thai_project_title,
                     academic_year,
                     status,
-                    created_at
+                    created_at,
+                    creator_id
                 )
             `)
             .eq('user_id', userId
@@ -36,7 +37,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("ดึงข้อมูลล้มเหลว:", error.message);
             return;
         }
-       
 
         let projects = responsibilities.map(item => item.project).filter(p => p !== null);
         projects.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -53,42 +53,39 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ? "bg-[#dcfce7] text-[#16a34a]"
                 : "bg-red-100 text-red-500"; // ค่าเริ่มต้น
 
-            const cardHTML = `
-                    <div id="project-card-${project.project_id}" onclick="window.location.href='dashboard-project.html?id=${project.project_id}'" class="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] shadow-xl p-8 relative group border border-gray-50 hover:bg-gray-50 transition-all cursor-pointer min-h-[180px]">
-                        
-                        <div class="absolute top-4 right-4">
-                            <!-- 1. เพิ่ม event.stopPropagation() ตรงปุ่มสามจุด -->
-                            <button onclick="event.stopPropagation(); toggleDeletePopup('popup-${project.project_id}')" class=" rounded-xl w-8 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M273.02-428q-21.54 0-36.66-15.34-15.13-15.34-15.13-36.87 0-21.54 15.34-36.66Q251.91-532 273.44-532q21.54 0 36.67 15.34 15.12 15.34 15.12 36.87 0 21.54-15.34 36.66Q294.56-428 273.02-428Zm206.77 0q-21.54 0-36.66-15.34Q428-458.68 428-480.21q0-21.54 15.34-36.66Q458.68-532 480.21-532q21.54 0 36.66 15.34Q532-501.32 532-479.79q0 21.54-15.34 36.66Q501.32-428 479.79-428Zm206.77 0q-21.54 0-36.67-15.34-15.12-15.34-15.12-36.87 0-21.54 15.34-36.66Q665.44-532 686.98-532t36.66 15.34q15.13 15.34 15.13 36.87 0 21.54-15.34 36.66Q708.09-428 686.56-428Z"/></svg>
-                            </button>
-                        </div>
+            const isOwner = project.creator_id === userId;
 
-                        <!-- 2. เพิ่ม onclick="event.stopPropagation()" และ z-10 ที่ตัวกล่อง Popover ลบด้วย เพื่อกันการคลิกทะลุตอนกดปุ่มข้างใน -->
-                        <div id="popup-${project.project_id}" onclick="event.stopPropagation()" class="hidden absolute top-11 right-4 bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] p-6 w-full max-w-[280px] z-10">
-                            <div class="text-center mb-6 mt-2">
-                                <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">คุณต้องการลบโครงงานหรือไม่ ?</h3>
-                            </div>
-                            <div class="flex gap-3">
-                                <button onclick="toggleDeletePopup('popup-${project.project_id}')"
-                                    class="flex-1 py-2 bg-white text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-                                    ยกเลิก
-                                </button>
-                                <button onclick="deleteProject('${project.project_id}')"
-                                    class="flex-1 py-2 bg-[#c81e1e] text-white font-semibold text-sm rounded-xl hover:bg-[#a51515] transition-all cursor-pointer">
-                                    ยืนยัน
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-between items-center mt-4 mb-6">
-                            <span class="text-xs text-gray-500 font-medium">${dateStr}</span>
-                            <span class="px-3 py-1 ${statusColors} text-[10px] font-bold rounded-full">${project.status}</span>
-                        </div>
-                        <p class="text-[14px] text-gray-800 font-semibold leading-relaxed">
-                            ${project.thai_project_title}
-                        </p>
+            const deleteButtonHTML = isOwner ? `
+                <div class="absolute top-4 right-4">
+                    <button onclick="event.stopPropagation(); toggleDeletePopup('popup-${project.project_id}')" class="rounded-xl w-8 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M273.02-428q-21.54 0-36.66-15.34-15.13-15.34-15.13-36.87 0-21.54 15.34-36.66Q251.91-532 273.44-532q21.54 0 36.67 15.34 15.12 15.34 15.12 36.87 0 21.54-15.34 36.66Q294.56-428 273.02-428Zm206.77 0q-21.54 0-36.66-15.34Q428-458.68 428-480.21q0-21.54 15.34-36.66Q458.68-532 480.21-532q21.54 0 36.66 15.34Q532-501.32 532-479.79q0 21.54-15.34 36.66Q501.32-428 479.79-428Zm206.77 0q-21.54 0-36.67-15.34-15.12-15.34-15.12-36.87 0-21.54 15.34-36.66Q665.44-532 686.98-532t36.66 15.34q15.13 15.34 15.13 36.87 0 21.54-15.34 36.66Q708.09-428 686.56-428Z"/></svg>
+                    </button>
+                </div>
+                <div id="popup-${project.project_id}" onclick="event.stopPropagation()" class="hidden absolute top-11 right-4 bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] p-6 w-full max-w-[280px] z-10">
+                    <div class="text-center mb-6 mt-2">
+                        <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">คุณต้องการลบโครงงานหรือไม่ ?</h3>
                     </div>
-                `;
+                    <div class="flex gap-3">
+                        <button onclick="toggleDeletePopup('popup-${project.project_id}')" class="flex-1 py-2 bg-white text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">ยกเลิก</button>
+                        <button onclick="deleteProject('${project.project_id}')" class="flex-1 py-2 bg-[#c81e1e] text-white font-semibold text-sm rounded-xl hover:bg-[#a51515] transition-all cursor-pointer">ยืนยัน</button>
+                    </div>
+                </div>
+            ` : '';
+
+            const cardHTML = `
+                <div id="project-card-${project.project_id}" onclick="window.location.href='./dashboard-project.html?id=${project.project_id}'" class="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] shadow-xl p-8 relative group border border-gray-50 hover:bg-gray-50 transition-all cursor-pointer min-h-[180px]">
+                    
+                    ${deleteButtonHTML}
+
+                    <div class="flex justify-between items-center mt-4 mb-6">
+                        <span class="text-xs text-gray-500 font-medium">${dateStr}</span>
+                        <span class="px-3 py-1 ${statusColors} text-[10px] font-bold rounded-full">${project.status}</span>
+                    </div>
+                    <p class="text-[14px] text-gray-800 font-semibold leading-relaxed">
+                        ${project.thai_project_title}
+                    </p>
+                </div>
+            `;
 
             projectContainer.insertAdjacentHTML("beforeend", cardHTML);
         });
@@ -99,24 +96,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     const form = document.getElementById('create-project-form');
     const closeBtn = document.getElementById('close-modal-btn');
     const cancelBtn = document.getElementById('cancel-btn');
-   
-    createBtn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
-    });
 
-    closeBtn.addEventListener('click', () => {
-        modal.classList.add('hidden');
-        form.reset(); 
-    });
-
-    cancelBtn.addEventListener('click', () => {
-        modal.classList.add('hidden');
-        form.reset();
-    });
+    createBtn.addEventListener('click', () => { modal.classList.remove('hidden'); });
+    closeBtn.addEventListener('click', () => { modal.classList.add('hidden'); form.reset(); });
+    cancelBtn.addEventListener('click', () => { modal.classList.add('hidden'); form.reset(); });
 
     // เมื่อกดปุ่ม สร้างโครงงาน
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // 1. ดึงปุ่ม Submit มาปิดการทำงานชั่วคราว ป้องกันกดเบิ้ล
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = "กำลังสร้าง...";
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
+        }
+
+        const resetSubmitButton = () => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "สร้างโครงงาน";
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
 
         const thaiTitle = document.getElementById('thai-title').value.trim();
         const engTitle = document.getElementById('eng-title').value.trim();
@@ -125,14 +128,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const thaiTitleError = document.getElementById('thai-title_error');
         const academicYearError = document.getElementById('academic-year_error');
         const advisorEmailError = document.getElementById('advisor-email_error');
-
+        
         const engTitleError = document.getElementById('eng-title_error');
-
+        
         const advisorEmailRaw = document.getElementById('advisor-email').value;
         const advisorEmails = advisorEmailRaw ? advisorEmailRaw.split(',').map(email => email.trim()).filter(email => email !== "") : [];
-
+        
         const teamEmailsRaw = document.getElementById('team-emails').value;
         const teamEmails = teamEmailsRaw ? teamEmailsRaw.split(',').map(email => email.trim()).filter(email => email !== "") : [];
+        const teamEmailError = document.getElementById('team-email_error');
 
         let isValid = true;
         const validateField = (value, errorEl, message) => {
@@ -163,23 +167,119 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (engTitleError) {
                 engTitleError.innerText = "กรุณากรอกเป็นภาษาอังกฤษเท่านั้น";
                 engTitleError.classList.remove('hidden');
-            } else {
-                return;// alert("ชื่อโครงงานภาษาอังกฤษต้องเป็นภาษาอังกฤษเท่านั้น");
             }
             isValid = false;
         } else if (engTitleError) {
             engTitleError.classList.add('hidden');
         }
-        // ตรวจสอบรูปแบบอีเมลอาจารย์
+
+
+        // ตรวจสอบรูปแบบอีเมล
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (advisorEmails && !emailRegex.test(advisorEmails)) {
-            advisorEmailError.innerText = "รูปแบบอีเมลไม่ถูกต้อง";
+
+        // เช็กอีเมลอาจารย์
+        const isInvalidAdvisorEmail = advisorEmails.some(email => !emailRegex.test(email));
+        if (advisorEmails.length > 0 && isInvalidAdvisorEmail) {
+            advisorEmailError.innerText = "รูปแบบอีเมลอาจารย์ไม่ถูกต้อง";
             advisorEmailError.classList.remove('hidden');
             isValid = false;
         }
 
+        // เช็กอีเมลสมาชิกในทีม (นิสิต)
+        const isInvalidTeamEmail = teamEmails.some(email => !emailRegex.test(email));
+        if (teamEmails.length > 0 && isInvalidTeamEmail) {
+            teamEmailError.innerText = "รูปแบบอีเมลสมาชิกในทีมไม่ถูกต้อง";
+            teamEmailError.classList.remove('hidden');
+            isValid = false;
+        }
+
         if (!isValid) {
+            resetSubmitButton();
             return;
+        }
+
+        if (!isValid) {
+            resetSubmitButton();
+            return;
+        }
+
+        if (advisorEmails.length > 0) {
+            // 1. ดึง email จาก users และดึง role จาก user_role
+            const { data: advisorUsers, error: advError } = await supabaseClient
+                .from('users')
+                .select(`
+                    email,
+                    user_role ( role_id ) 
+                `)
+                .in('email', advisorEmails);
+
+            if (advError) {
+                console.error("ตรวจสอบอีเมลอาจารย์ล้มเหลว:", advError.message);
+                alert("เกิดข้อผิดพลาดในการตรวจสอบระบบ");
+                resetSubmitButton();
+                return;
+            }
+
+            if (advisorUsers.length < advisorEmails.length) {
+                advisorEmailError.innerText = "ไม่พบอีเมลอาจารย์บางท่านในระบบ (ยังไม่สมัครสมาชิก)";
+                advisorEmailError.classList.remove('hidden');
+                resetSubmitButton();
+                return;
+            }
+
+            // 2. เช็คว่า role ในตาราง user_role เป็น 'teacher' หรือไม่
+            const hasInvalidTeacherRole = advisorUsers.some(u => {
+                const roleIds = Array.isArray(u.user_role)
+                    ? u.user_role.map(r => r.role_id)
+                    : [u.user_role?.role_id];
+
+                return !roleIds.includes(2); // 2 คือ role_id ของอาจารย์
+            });
+
+            if (hasInvalidTeacherRole) {
+                advisorEmailError.innerText = "อีเมลที่ระบุไม่ใช่บัญชีอาจารย์ กรุณาตรวจสอบอีกครั้ง";
+                advisorEmailError.classList.remove('hidden');
+                resetSubmitButton();
+                return;
+            }
+        }
+
+        if (teamEmails.length > 0) {
+            const { data: studentUsers, error: studentError } = await supabaseClient
+                .from('users')
+                .select(`
+                    email,
+                    user_role ( role_id )
+                `)
+                .in('email', teamEmails);
+
+            if (studentError) {
+                console.error("ตรวจสอบอีเมลนิสิตล้มเหลว:", studentError.message);
+                alert("เกิดข้อผิดพลาดในการตรวจสอบระบบฐานข้อมูล");
+                resetSubmitButton();
+                return;
+            }
+
+            if (studentUsers.length < teamEmails.length) {
+                alert("ไม่พบอีเมลสมาชิกบางคนในระบบ (เพื่อนอาจจะยังไม่ได้สมัครสมาชิก)");
+                resetSubmitButton();
+                return;
+            }
+
+            const hasInvalidStudentRole = studentUsers.some(u => {
+                const roleIds = Array.isArray(u.user_role)
+                    ? u.user_role.map(r => r.role_id)
+                    : [u.user_role?.role_id];
+
+                return !roleIds.includes(1);
+            });
+
+            if (hasInvalidStudentRole) {
+                teamEmailError.innerText = "อีเมลที่ระบุไม่ใช่บัญชีนิสิต/นักศึกษา กรุณาตรวจสอบอีกครั้ง";
+                teamEmailError.classList.remove('hidden');
+                resetSubmitButton();
+                return;
+            }
         }
 
         // สร้างโครงงานลงตาราง project
@@ -189,15 +289,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                 thai_project_title: thaiTitle,
                 english_project_title: engTitle,
                 academic_year: academicYear,
-                status: "กำลังดำเนิน"
+                status: "กำลังดำเนิน",
+                creator_id: userId
             }])
             .select();
 
         if (projectError) {
             alert("สร้างโครงงานล้มเหลว: " + projectError.message);
+            resetSubmitButton();
             return;
         }
-
         const projectId = newProject[0].project_id;
 
         // รวบรวมอีเมลทั้งหมดที่ต้องดึงเข้าโครงงาน (เพื่อน + อาจารย์)
@@ -238,6 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         modal.classList.add('hidden');
         form.reset();
+        resetSubmitButton(); // คืนสภาพปุ่มเมื่อเสร็จสมบูรณ์
         loadProjects();
     });
     loadProjects();
