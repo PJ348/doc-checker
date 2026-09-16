@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         student: resolve(__dirname, 'html/dashboard-student.html'),
+        dashboardProject: resolve(__dirname, 'html/dashboard-project.html'),
         teacher: resolve(__dirname, 'html/dashboard-teacher.html'),
         admin: resolve(__dirname, 'html/dashboard-admin.html'),
         signup: resolve(__dirname, 'html/sign-up.html')

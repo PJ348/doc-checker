@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (error) {
             console.error("ดึงข้อมูลล้มเหลว:", error.message);
+            alert("ไม่สามารถโหลดข้อมูลโครงงานได้ กรุณาลองใหม่อีกครั้ง");
             return;
         }
 
@@ -81,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <span class="text-xs text-gray-500 font-medium">${dateStr}</span>
                         <span class="px-3 py-1 ${statusColors} text-[10px] font-bold rounded-full">${project.status}</span>
                     </div>
-                    <p class="text-[14px] text-gray-800 font-semibold leading-relaxed">
+                    <p title="${project.thai_project_title}" class="text-[14px] text-gray-800 font-semibold leading-relaxed line-clamp-2 break-words">
                         ${project.thai_project_title}
                     </p>
                 </div>
@@ -295,7 +296,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             .select();
 
         if (projectError) {
-            alert("สร้างโครงงานล้มเหลว: " + projectError.message);
+            console.log("สร้างโครงงานล้มเหลว: " + projectError.message);
+            alert("เกิดข้อผิดพลาดในการสร้างโครงงาน กรุณาลองใหม่อีกครั้ง");
             resetSubmitButton();
             return;
         }
