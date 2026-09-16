@@ -9,19 +9,31 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
         rel="stylesheet">
+
+    <!-- <style>
+        /* ซ่อน Scrollbar สำหรับ Chrome, Safari และ Opera */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* ซ่อน Scrollbar สำหรับ IE, Edge และ Firefox */
+        .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style> -->
 </head>
 
-<body style="font-family: 'Sarabun', sans-serif;" class=" bg-[#eaf1f8] min-h-screen p-6 md:p-10 relative">
-    <div class="max-w-8xl mx-auto bg-white rounded-[2rem] shadow-xl overflow-hidden mt-2 min-h-[700px]">
+<body style="font-family: 'Sarabun', sans-serif;" class="bg-[#eaf1f8] h-screen relative flex flex-col mx-6">
+    <div class="max-w-8xl mt-4 mx-auto w-full flex-1 bg-white rounded-t-[2rem] shadow-xl overflow-hidden flex flex-col min-h-[600px]">
 
-        <!-- Navbar สีน้ำเงินเข้ม -->
-        <div class="bg-[#213f8c] h-14 md:h-16 w-full rounded-t-[2rem] flex items-center justify-between px-6 md:px-8">
+        <!-- Navbar -->
+        <div class="bg-[#213f8c] h-14 md:h-16 w-full shrink-0 flex items-center justify-between px-6 md:px-8">
 
-            <!-- ฝั่งซ้าย: ปุ่มย้อนกลับ และ ชื่อระบบ -->
+            <!-- Dark Blue Top Bar -->
             <div class="flex items-center gap-4">
+                <!-- ปุ่มย้อนกลับ -->
                 <button id="back-button" class="text-white hover:text-gray-300 transition-colors cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
                         stroke="currentColor" class="w-5 h-5">
@@ -32,18 +44,16 @@
                     AI Document Format Checker
                 </span>
             </div>
-
-            <!-- ฝั่งขวา: รูปโปรไฟล์ -->
+            
+            <!-- รูปโปรไฟล์ -->
             <div id="profile-menu-container" class="relative flex-shrink-0">
-                <!-- โค้ดรูปโปรไฟล์หรือ Dropdown ของคุณจะมาอยู่ตรงนี้ -->
             </div>
 
         </div>
 
         <!-- เนื้อหาโครงงาน -->
-        <div class="p-8 md:px-14 md:py-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="pt-8 px-8 pb-4 md:px-14 md:pt-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
 
-            <!-- ฝั่งซ้าย: ชื่อโครงงาน & รายละเอียด -->
             <div class="flex items-baseline gap-4">
                 <h1 id="display-project-name" class="text-2xl font-bold text-gray-900"></h1>
 
@@ -53,7 +63,6 @@
                         ดูรายละเอียด
                     </button>
 
-                    <!-- ปรับการตั้งค่าความกว้างและจุดยึด (left) ให้พอดีจอ -->
                     <div id="details-popup"
                         class="hidden absolute top-full -left-4 sm:left-0 mt-4 bg-white rounded-[1.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-100 w-[calc(100vw-3rem)] sm:w-[350px] md:w-max md:max-w-[400px] p-5 sm:p-7 z-30">
                         <div class="flex items-center gap-2 mb-4">
@@ -78,7 +87,6 @@
                         สมาชิก
                     </button>
 
-                    <!-- ปรับ w-[calc(100vw-3rem)] และ -right-4 sm:right-0 เพื่อไม่ให้ล้นขอบ -->
                     <div id="members-popup"
                         class="hidden absolute top-full -left-4 sm:left-0 mt-4 bg-white rounded-[1.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-gray-100 w-[calc(100vw-3rem)] sm:w-[380px] md:w-[420px] p-5 sm:p-7 z-30">
                         <h2 class="text-[15px] font-bold text-gray-800 mb-4 sm:mb-5">สมาชิก</h2>
@@ -99,15 +107,105 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ฝั่งขวา: ปุ่มสมาชิก -->
         </div>
 
-        <!-- พื้นที่เนื้อหาโครงงานด้านล่าง -->
-        <div class="p-8 md:px-14">
-            <!-- เนื้อหาอื่นๆ เช่น ตารางไฟล์เอกสาร -->
-        </div>
+        <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-6 px-6 md:px-10 py-0 overflow-y-auto md:overflow-hidden">
+            <!-- ประวัติการส่ง -->
+            <div class="md:col-span-2 min-h-0 md:h-full md:overflow-y-auto hide-scrollbar pr-2 ">
+                <p class="sticky top-0 bg-white z-10 flex items-center gap-1 text-sm font-semibold text-gray-700 h-10">
+                    version
+                </p>
 
+                <div id="version-list-container" class="flex flex-col gap-2">
+                    <p class="text-sm text-gray-400 text-center py-4">กำลังโหลดประวัติ...</p>
+                </div>
+            </div>
+
+            <!-- ที่โชว์เอกสารตรงกลาง -->
+            <div class="md:col-span-7 min-h-0 md:h-full flex flex-col relative pb-10  h-[00px] md:h-auto">
+                <div class="shrink-0 flex items-center gap-3 pl-2 h-10">
+                    <div>
+                        <span id="submitter-name" class="font-semibold text-sm text-gray-800"></span>
+                        <span id="display-format-name" class="text-xs text-gray-500 font-medium"></span>
+                        <span id="submit-time" class="text-xs text-gray-400 ml-2"></span>
+                    </div>
+                </div>
+
+                <div id="document-viewer-container" class="flex-1 min-h-0 overflow-y-auto hide-scrollbar pb-8 relative">
+                    <div class="flex h-full items-center justify-center text-gray-400">เลือกประวัติการส่งเพื่อดูเอกสาร</div>
+                </div>
+
+                <!-- กล่องอัปโหลด -->
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none px-6">
+                    <div class="bg-white/95 backdrop-blur-sm rounded-full border border-gray-200 shadow-[0_8px_20px_rgb(0,0,0,0.06)] p-1.5 flex items-center justify-between w-full max-w-[450px] pointer-events-auto transition-all hover:shadow-[0_8px_25px_rgb(0,0,0,0.1)]">
+                        <div class="flex items-center">
+                            <label id="file-label" class="p-2 text-gray-400 hover:text-[#213f8c] hover:bg-blue-50 rounded-full cursor-pointer transition-colors relative" title="แนบไฟล์เอกสาร">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                                <span id="file-indicator" class="hidden absolute top-1 right-1 w-2 h-2 bg-green-500 border-2 border-white rounded-full box-content"></span>
+                                <input type="file" id="file-upload" class="hidden" accept=".pdf,.doc,.docx">
+                            </label>
+                            
+                            <!-- ปุ่มเอาไฟล์ออก-->
+                            <button id="clear-file-btn" class="hidden w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ml-0.5 cursor-pointer" title="ยกเลิกการแนบไฟล์นี้">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="flex-1 px-3 border-l border-gray-100 ml-1 flex items-center relative">
+                            <select id="format-select" class="w-full appearance-none bg-transparent text-[13px] font-medium text-gray-700 outline-none cursor-pointer pr-6 truncate">
+                                <option value="" disabled selected>เลือกประวัติมาตรฐาน...</option>
+                            </select>
+
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400 absolute right-2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+
+                        <button id="upload-btn" class="w-8 h-8 shrink-0 bg-[#213f8c] text-white rounded-full flex items-center justify-center hover:bg-[#1a3270] transition-colors shadow-sm cursor-pointer ml-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transform rotate-[-90deg] -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- คำแนะนำ -->
+            <div class="md:col-span-3 min-h-0 md:h-full md:overflow-y-auto hide-scrollbar md:pl-6 md:border-l border-gray-100 pb-10">
+                <div class="sticky top-0 bg-white z-10 pb-4">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 pt-1">คำแนะนำ</h3>
+                    
+                    <!-- Tabsเลือกดูคำแนะนำจาก AI หรือ อาจารย์ -->
+                    <div class="flex gap-4 border-b border-gray-200">
+                        <button id="tab-ai" onclick="switchFeedbackTab('ai')" class="pb-2 border-b-2 border-[#213f8c] font-bold text-sm text-[#213f8c] transition-colors">ผลตรวจจาก AI</button>
+                        <button id="tab-teacher" onclick="switchFeedbackTab('teacher')" class="pb-2 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-600 transition-colors">คำอาจารย์</button>
+                    </div>
+                </div>
+
+                <!-- ผลตรวจจาก AI -->
+                <div id="ai-content-area" class="pt-2 pr-2">
+                    <div id="ai-metrics-container" class="flex flex-wrap gap-2 hidden mb-4">
+                        <span id="confidence-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 text-[11px] font-bold"></span>
+                        <span id="severity-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 text-[11px] font-bold"></span>
+                    </div>
+                    <ul id="ai-feedback-container" class="list-disc pl-5 space-y-6 text-[13px] text-gray-700 marker:text-gray-400">
+                        <p class="text-sm text-gray-400 text-center py-4">เลือกเวอร์ชันเพื่อดูผลตรวจ</p>
+                    </ul>
+                </div>
+
+                <!-- คำแนะนำอาจารย์ -->
+                <div id="teacher-content-area" class="hidden pt-2 pr-2">
+                    <div id="teacher-feedback-container" class="text-[13px] text-gray-700 p-4">
+                        <p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
 
     </div>
 
