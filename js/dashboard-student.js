@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // 1. ดึงปุ่ม Submit มาปิดการทำงานชั่วคราว ป้องกันกดเบิ้ล
+        // ป้องกันกดซ้ำ
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;

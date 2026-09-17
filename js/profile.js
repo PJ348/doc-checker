@@ -118,8 +118,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </button>
 
                     <div class="flex justify-end gap-3">
-                        <button id="cancel-avatar-btn" class="text-sm font-semibold px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">ยกเลิก</button>
-                        <button id="save-avatar-btn" class="text-sm font-semibold px-5 py-2.5 bg-[#213f8c] text-white rounded-xl hover:bg-[#082570] transition-colors shadow-sm">บันทึก</button>
+                        <button id="cancel-avatar-btn" class="text-sm font-semibold px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors curs cursor-pointer">ยกเลิก</button>
+                        <button id="save-avatar-btn" class="text-sm font-semibold px-5 py-2.5 bg-[#213f8c] text-white rounded-xl hover:bg-[#082570] transition-colors shadow-sm cursor-pointer">บันทึก</button>
                     </div>
                 </div>
             </div>
@@ -284,11 +284,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 saveBtn.innerText = "บันทึก";
                 modal.classList.add('hidden');
-                loadAndRenderProfile();
+                // loadAndRenderProfile();
+                window.location.reload();
 
             };
         }
     };
     loadAndRenderProfile();
+    // window.location.reload();
 });
 
