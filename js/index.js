@@ -1,6 +1,6 @@
 import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", () => {
-    
+
     const inputFields = [
         { inputId: 'email', errorId: 'email_error' },
         { inputId: 'password', errorId: 'password_error' }
@@ -24,6 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Login
     const loginButton = document.getElementById("login-btn");
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") loginButton.click();
+    });
+    
     if (!loginButton) return;
 
     loginButton.addEventListener("click", async () => {
@@ -98,9 +102,9 @@ document.addEventListener("DOMContentLoaded", () => {
             if (roleId === 1) {
                 window.location.href = "/html/dashboard-student.html";
             } else if (roleId === 2) {
-                window.location.href = "/html/dashboard-teacher.html"; 
+                window.location.href = "/html/dashboard-teacher.html";
             } else if (roleId === 3) {
-                window.location.href = "/html/dashboard-admin.html"; 
+                window.location.href = "/html/dashboard-admin.html";
             } else {
                 alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
             }

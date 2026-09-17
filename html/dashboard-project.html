@@ -181,8 +181,8 @@
                     
                     <!-- Tabsเลือกดูคำแนะนำจาก AI หรือ อาจารย์ -->
                     <div class="flex gap-4 border-b border-gray-200">
-                        <button id="tab-ai" onclick="switchFeedbackTab('ai')" class="pb-2 border-b-2 border-[#213f8c] font-bold text-sm text-[#213f8c] transition-colors">ผลตรวจจาก AI</button>
-                        <button id="tab-teacher" onclick="switchFeedbackTab('teacher')" class="pb-2 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-600 transition-colors">คำอาจารย์</button>
+                        <button id="tab-ai" onclick="switchFeedbackTab('ai')" class="pb-2 border-b-2 border-[#213f8c] font-bold text-sm text-[#213f8c] transition-colors cursor-pointer">ผลตรวจจาก AI</button>
+                        <button id="tab-teacher" onclick="switchFeedbackTab('teacher')" class="pb-2 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">คำแนะนำจากอาจารย์</button>
                     </div>
                 </div>
 
@@ -199,7 +199,7 @@
 
                 <!-- คำแนะนำอาจารย์ -->
                 <div id="teacher-content-area" class="hidden pt-2 pr-2">
-                    <div id="teacher-feedback-container" class="text-[13px] text-gray-700 p-4">
+                    <div id="teacher-feedback-container" class="text-[13px] text-gray-700">
                         <p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>
                     </div>
                 </div>

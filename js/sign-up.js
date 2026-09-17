@@ -23,6 +23,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const signUpButton = document.getElementById("signup-btn");
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") signUpButton.click();
+    });
+
     signUpButton.addEventListener("click", async () => {
 
         const firstNameInput = document.getElementById('firstname');
@@ -42,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const passwordError = document.getElementById('password_error');
 
         let isValid = true;
-
+        signUpButton.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
+        
         const validateField = (value, errorEl) => {
             if (!value) {
                 errorEl.classList.remove('hidden');
@@ -88,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.status === 422 || error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
                 emailError.innerText = "อีเมลนี้มีผู้ใช้งานแล้ว กรุณาใช้อีเมลอื่น";
                 emailError.classList.remove('hidden');
-            } 
+            }
             else {
                 alert('เกิดข้อผิดพลาดในการสมัคร: ' + error.message);
             }
