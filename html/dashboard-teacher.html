@@ -1,19 +1,56 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Teacher</title>
-    <link href="./src/output.css" rel="stylesheet">
-    
+    <link href="../src/output.css" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=more_vert" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
+        rel="stylesheet">
 </head>
 
-<body style="font-family: 'Sarabun', sans-serif;" class="bg-slate-100 flex items-center justify-center min-h-screen">
+<body style="font-family: 'Sarabun', sans-serif;" class=" bg-[#eaf1f8] min-h-screen relative flex flex-col mx-6">
+    <div class="max-w-8xl mt-4 mx-auto w-full flex-1 bg-white rounded-t-[2rem] shadow-xl overflow-hidden flex flex-col min-h-[600px]">
 
+        <!-- Dark Blue Top Bar -->
+        <div
+            class="sticky top-0 z-50 bg-[#213f8c] h-14 md:h-16 w-full flex items-center justify-end px-6 md:px-8 rounded-t-[2rem] shadow-md">
+
+            <!-- รูปโปรไฟล์ -->
+            <div id="profile-menu-container" class="relative">
+            </div>
+        </div>
+
+        <!-- Header Section -->
+        <div class="pt-12 pb-10 px-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#213f8c] mb-8">AI Document Format Checker</h1>
+
+        </div>
+
+        <!-- Projects Section -->
+        <div class="px-8 md:px-16 pb-16">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">โครงงานของฉัน</h2>
+
+            <!-- Grid Container -->
+            <div id="project-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
+    <script type="module" src="../js/dashboard-teacher.js"></script>
+    <script type="module" src="../js/profile.js"></script>
 
 </body>
 

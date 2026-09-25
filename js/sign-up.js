@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const passwordError = document.getElementById('password_error');
 
         let isValid = true;
-        signUpButton.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
+        // signUpButton.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
         
         const validateField = (value, errorEl) => {
             if (!value) {
@@ -80,6 +80,12 @@ document.addEventListener("DOMContentLoaded", () => {
             // console.log("ข้อมูลไม่ครบ หยุดการส่งข้อมูล!");
             return;
         }
+        signUpButton.disabled = true;
+        signUpButton.classList.add('opacity-50', 'cursor-not-allowed');
+        const resetButton = () => {
+            signUpButton.disabled = false;
+            signUpButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        };
 
         console.log("ข้อมูลครบถ้วน กำลังสมัครสมาชิก...");
         console.log("กำลังสมัครสมาชิก...");
@@ -93,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.status === 422 || error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already exists')) {
                 emailError.innerText = "อีเมลนี้มีผู้ใช้งานแล้ว กรุณาใช้อีเมลอื่น";
                 emailError.classList.remove('hidden');
+                resetButton()
             }
             else {
                 alert('เกิดข้อผิดพลาดในการสมัคร: ' + error.message);
@@ -116,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (userError) {
                 console.error("พังที่ตาราง users:", userError);
                 alert("บันทึกข้อมูลผู้ใช้ไม่สำเร็จ");
+                resetButton();
                 return;
             }
 
@@ -131,6 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (roleError) {
                 console.error("พังที่ตาราง user_role:", roleError);
                 alert("สมัครสำเร็จ แต่บันทึกตำแหน่ง (Role) ไม่สำเร็จ");
+                resetButton();
             } else {
                 window.location.href = "../index.html";
             }
