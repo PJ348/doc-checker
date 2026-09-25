@@ -24,11 +24,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Login
     const loginButton = document.getElementById("login-btn");
+    
+    if (!loginButton) return;
     document.addEventListener("keydown", (e) => {
         if (e.key === "Enter") loginButton.click();
     });
     
-    if (!loginButton) return;
 
     loginButton.addEventListener("click", async () => {
         const emailInput = document.getElementById('email');
@@ -75,10 +76,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("เข้าสู่ระบบไม่สำเร็จ:", error.message);
 
             if (loginError) {
-                loginError.innerText = "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+                loginError.innerText = "ไม่พบบัญชีผู้ใช้นี้ หรือ รหัสผ่านไม่ถูกต้อง";
                 loginError.classList.remove('hidden');
-            } else {
-                alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
             }
             return;
         }

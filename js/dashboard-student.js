@@ -40,22 +40,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         let projects = responsibilities.map(item => item.project).filter(p => p !== null);
-        projects.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        projects.sort((a, b) => {
+            const aIsDone = a.status === "เสร็จสิ้น";
+            const bIsDone = b.status === "เสร็จสิ้น";
+
+            if (aIsDone && !bIsDone) return 1;  // ถ้า a เสร็จแล้ว ให้ a โดนดันลงไปข้างล่าง b
+            if (!aIsDone && bIsDone) return -1; // ถ้า b เสร็จแล้ว ให้ b โดนดันลงไปข้างล่าง a
+
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+
         // ล้างกล่องให้ว่างก่อนใส่ของใหม่
         projectContainer.innerHTML = "";
 
         // วนลูปข้อมูลสร้างเป็นการ์ดทีละใบ
         projects.forEach(project => {
             const dateObj = project.created_at ? new Date(project.created_at) : new Date();
-            const dateStr = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear() + 543}`;
+            const dateStr = `เริ่มโครงงาน: ${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear() + 543}`;
 
-            // กำหนดสีของสถานะโครงงาน
-            let statusColors = project.status === "ผ่าน"
-                ? "bg-[#dcfce7] text-[#16a34a]"
-                : "bg-red-100 text-red-500"; // ค่าเริ่มต้น
+            let statusColors = "bg-gray-100 text-gray-600"; // ค่าเริ่มต้น (สีเทา)
+            if (project.status === "เสร็จสิ้น" || project.status === "ผ่าน") {
+                statusColors = "bg-[#dcfce7] text-[#16a34a]"; // สีเขียว (เสร็จสิ้น)
+            } else if (project.status === "กำลังดำเนิน") {
+                statusColors = "bg-blue-100 text-[#213f8c]"; // สีน้ำเงิน (กำลังดำเนิน)
+            } else if (project.status === "ต้องแก้ไข" || project.status === "ไม่ผ่าน") {
+                statusColors = "bg-red-100 text-red-600"; // สีแดง (มีปัญหา)
+            }
 
             const isOwner = project.creator_id === userId;
 
+            // โค้ดปุ่มลบ (สำหรับนิสิตที่เป็นเจ้าของ)
             const deleteButtonHTML = isOwner ? `
                 <div class="absolute top-4 right-4">
                     <button onclick="event.stopPropagation(); toggleDeletePopup('popup-${project.project_id}')" class="rounded-xl w-8 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all cursor-pointer">
@@ -73,13 +87,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </div>
             ` : '';
 
+            const targetUrl = `./dashboard-project.html?id=${project.project_id}`;
             const cardHTML = `
-                <div id="project-card-${project.project_id}" onclick="window.location.href='./dashboard-project.html?id=${project.project_id}'" class="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] shadow-xl p-8 relative group border border-gray-50 hover:bg-gray-50 transition-all cursor-pointer min-h-[180px]">
+                <div id="project-card-${project.project_id}" onclick="window.location.href='${targetUrl}'" class="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] shadow-xl p-8 relative group border border-gray-50 hover:bg-gray-50 transition-all cursor-pointer min-h-[180px]">
                     
                     ${deleteButtonHTML}
 
                     <div class="flex justify-between items-center mt-4 mb-6">
-                        <span class="text-xs text-gray-500 font-medium">${dateStr}</span>
+                        <span class="text-[11px] text-gray-500 font-medium">${dateStr}</span>
                         <span class="px-3 py-1 ${statusColors} text-[10px] font-bold rounded-full">${project.status}</span>
                     </div>
                     <p title="${project.thai_project_title}" class="text-[14px] text-gray-800 font-semibold leading-relaxed line-clamp-2 break-words">
@@ -122,6 +137,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         };
 
+        const userEmail = session.user.email;
+
         const thaiTitle = document.getElementById('thai-title').value.trim();
         const engTitle = document.getElementById('eng-title').value.trim();
         const academicYear = document.getElementById('academic-year').value.trim();
@@ -129,15 +146,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         const thaiTitleError = document.getElementById('thai-title_error');
         const academicYearError = document.getElementById('academic-year_error');
         const advisorEmailError = document.getElementById('advisor-email_error');
-        
+
         const engTitleError = document.getElementById('eng-title_error');
-        
+
         const advisorEmailRaw = document.getElementById('advisor-email').value;
-        const advisorEmails = advisorEmailRaw ? advisorEmailRaw.split(',').map(email => email.trim()).filter(email => email !== "") : [];
-        
+        const advisorEmails = advisorEmailRaw
+            ? advisorEmailRaw.split(',').map(email => email.trim()).filter(email => email !== "" && email !== userEmail)
+            : [];
         const teamEmailsRaw = document.getElementById('team-emails').value;
-        const teamEmails = teamEmailsRaw ? teamEmailsRaw.split(',').map(email => email.trim()).filter(email => email !== "") : [];
-        const teamEmailError = document.getElementById('team-email_error');
+        const teamEmails = teamEmailsRaw
+            ? teamEmailsRaw.split(',').map(email => email.trim()).filter(email => email !== "" && email !== userEmail)
+            : []; const teamEmailError = document.getElementById('team-email_error');
+
 
         let isValid = true;
         const validateField = (value, errorEl, message) => {
@@ -199,13 +219,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        if (!isValid) {
-            resetSubmitButton();
-            return;
-        }
-
         if (advisorEmails.length > 0) {
-            // 1. ดึง email จาก users และดึง role จาก user_role
+            // ดึง email จาก users และดึง role จาก user_role
             const { data: advisorUsers, error: advError } = await supabaseClient
                 .from('users')
                 .select(`
@@ -228,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            // 2. เช็คว่า role ในตาราง user_role เป็น 'teacher' หรือไม่
+            // เช็คว่า role ในตาราง user_role เป็น 'teacher' 
             const hasInvalidTeacherRole = advisorUsers.some(u => {
                 const roleIds = Array.isArray(u.user_role)
                     ? u.user_role.map(r => r.role_id)
@@ -317,14 +332,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .select('user_id, email')
                 .in('email', allEmails);
 
-            if (!userError && foundUsers) {
+            if (userError) {
+                await supabaseClient.from('project').delete().eq('project_id', projectId);
+                console.log("ตรวจสอบข้อมูลสมาชิกขัดข้อง: " + userError.message);
+                resetSubmitButton();
+                return;
+            }
+
+            if (foundUsers) {
                 foundUsers.forEach(user => {
                     responsibilityData.push({ user_id: user.user_id, project_id: projectId });
                 });
 
-                // แจ้งเตือนถ้ามีอีเมลไหนที่ยังไม่ได้สมัครสมาชิก
                 if (foundUsers.length < allEmails.length) {
-                    notFoundEmail.classList.remove('hidden');
+                    if (notFoundEmail) notFoundEmail.classList.remove('hidden');
                 }
             }
         }
@@ -336,12 +357,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             .select();
 
         if (respError) {
-            console.error("บันทึกสมาชิกทีมล้มเหลว:", respError.message);
+            await supabaseClient.from('project').delete().eq('project_id', projectId);
+            console.log("บันทึกสมาชิกทีมล้มเหลว:", respError.message);
+            alert("บันทึกสมาชิกทีมล้มเหลว: ");
+            resetSubmitButton();
+            return;
         }
 
         modal.classList.add('hidden');
         form.reset();
-        resetSubmitButton(); // คืนสภาพปุ่มเมื่อเสร็จสมบูรณ์
+        resetSubmitButton();
         loadProjects();
     });
     loadProjects();
@@ -374,7 +399,6 @@ window.addEventListener('click', (e) => {
     if (currentOpenPopupId) {
         const activePopup = document.getElementById(currentOpenPopupId);
 
-        // ถ้าจุดที่คลิก (e.target) ไม่ได้อยู่ข้างในกล่อง Popup (คลิกข้างนอกกรอบ)
         if (activePopup && !activePopup.contains(e.target)) {
             activePopup.classList.add('hidden');
             currentOpenPopupId = null;
@@ -397,21 +421,12 @@ window.deleteProject = async function (projectId) {
     if (!confirm("ยืนยันการลบโครงงานนี้อย่างถาวร?")) return;
 
     try {
-        // ลบความสัมพันธ์ในตาราง responsible_for ก่อน
-        const { error: relError } = await supabaseClient
-            .from('responsible_for')
-            .delete()
-            .eq('project_id', projectId);
+        // เรียกใช้ Function จาก Supabase เพื่อลบทั้งแม่และลูกในครั้งเดียว
+        const { error: funcError } = await supabaseClient.rpc('delete_project_completely', {
+            p_project_id: projectId
+        });
 
-        if (relError) throw relError;
-
-        //ลบลูกออกแล้ว ค่อยสั่งลบตัวโครงงานหลัก
-        const { error: projError } = await supabaseClient
-            .from('project')
-            .delete()
-            .eq('project_id', projectId);
-
-        if (projError) throw projError;
+        if (funcError) throw funcError;
 
         // ซ่อน Popup ก่อนลบการ์ด
         const popup = document.getElementById(`popup-${projectId}`);

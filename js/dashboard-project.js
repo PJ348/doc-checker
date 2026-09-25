@@ -1,4 +1,6 @@
 import { supabaseClient } from './supabase.js';
+
+let currentSubmissionId = null;
 window.togglePopup = function (popupID) {
     const popups = ['details-popup', 'members-popup'];
     popups.forEach(id => {
@@ -164,9 +166,8 @@ window.switchFeedbackTab = function (tabName) {
     const tabTeacher = document.getElementById('tab-teacher');
     const contentAi = document.getElementById('ai-content-area');
     const contentTeacher = document.getElementById('teacher-content-area');
-
-    const activeTabClass = "pb-2 border-b-2 border-[#213f8c] font-bold text-sm text-[#213f8c] transition-colors";
-    const inactiveTabClass = "pb-2 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-600 transition-colors";
+    const activeTabClass = "cursor-pointer pb-2 border-b-2 border-[#213f8c] font-bold text-sm text-[#213f8c] transition-colors";
+    const inactiveTabClass = "cursor-pointer pb-2 border-b-2 border-transparent font-medium text-sm text-gray-400 hover:text-gray-600 transition-colors";
 
     if (tabName === 'ai') {
         tabAi.className = activeTabClass;
@@ -213,9 +214,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     updateElement('display-project-name', projectData.thai_project_title);
     updateElement('detail-thai-name', `ชื่อโครงการ(ภาษาไทย): ${projectData.thai_project_title}`);
-    updateElement('detail-eng-name', `ชื่อโครงการ(ภาษาอังกฤษ): ${projectData.eng_project_title || "-"}`);
+    updateElement('detail-eng-name', `ชื่อโครงการ(ภาษาอังกฤษ): ${projectData.english_project_title || "-"}`);
     updateElement('detail-year', `ปีการศึกษา: ${projectData.academic_year || "-"}`);
     updateElement('detail-created_at', `เริ่มโครงงาน: ${dateStr}`);
+
+    if (projectData.status === 'เสร็จสิ้น') {
+        const uploadBtn = document.getElementById('upload-btn');
+        if (uploadBtn) {
+            // หากล่องตัวแม่ที่ครอบปุ่มอัปโหลดไว้
+            const uploadContainer = uploadBtn.closest('.absolute.bottom-4');
+            if (uploadContainer) {
+                uploadContainer.innerHTML = `
+                    <div class="bg-green-100 border border-green-200 text-green-700 px-6 py-2.5 rounded-full font-bold shadow-lg pointer-events-auto text-[13px] flex items-center gap-2">
+                        โครงงานนี้ได้รับการอนุมัติเสร็จสิ้นแล้ว
+                    </div>
+                `;
+            }
+        }
+    }
 
     const { data: membersData, error: membersError } = await supabaseClient
         .from('responsible_for')
@@ -233,6 +249,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (membersError) {
         console.error("Error fetching members:", membersError);
+        membersContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">โหลดรายชื่อสมาชิกไม่สำเร็จ</p>`;
+        return;
+    }
+
+    if (!membersData || membersData.length === 0) {
+        membersContainer.innerHTML = `...`;
         return;
     }
 
@@ -359,6 +381,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (foundUsers.length < emails.length) {
                 showError("มีบางอีเมลที่ยังไม่ได้สมัครสมาชิก ระบบจะเพิ่มเฉพาะคนที่มีบัญชีเท่านั้น");
             }
+            // const someNotFound = foundUsers.length < emails.length;
 
             // บันทึกลงตาราง responsible_for
             const responsibilityData = foundUsers.map(user => ({
@@ -383,55 +406,216 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             emailInput.value = "";
             window.location.reload();
+            // addBtn.disabled = false;
+
+            // if (someNotFound) {
+            //     await loadMembers(projectId);   // อัปเดตรายชื่อโดยไม่โหลดหน้าใหม่ ข้อความจะไม่หาย
+            //     showError("มีบางอีเมลที่ยังไม่ได้สมัครสมาชิก ระบบเพิ่มเฉพาะคนที่มีบัญชีเท่านั้น");
+            // } else {
+            //     window.location.reload();
+            // }
         });
     } else {
-        console.error("ระบบหาปุ่มเพิ่มสมาชิกไม่เจอ ตรวจสอบ id='add-btn' ในไฟล์ HTML");
+        console.log("ระบบหาปุ่มเพิ่มสมาชิกไม่เจอ ตรวจสอบ id='add-btn' ในไฟล์ HTML");
     }
 
     const backButton = document.getElementById('back-button');
     if (backButton) {
-        backButton.addEventListener('click', () => {
-            window.location.href = 'dashboard-student.html';
+        backButton.addEventListener('click', async () => {
+            backButton.style.opacity = '0.5';
+            backButton.style.pointerEvents = 'none';
+
+            // ดึงข้อมูล User ปัจจุบัน
+            const { data: { user } } = await supabaseClient.auth.getUser();
+
+            if (user) {
+                // เช็ก Role ID ว่าเป็นใคร
+                const { data: roleData } = await supabaseClient
+                    .from('users')
+                    .select('user_role(role_id)')
+                    .eq('user_id', user.id)
+                    .single();
+
+                const roleId = Array.isArray(roleData?.user_role) ? roleData.user_role[0]?.role_id : roleData?.user_role?.role_id;
+
+                // 2 = อาจารย์, 1 = นิสิต
+                if (roleId === 2) {
+                    window.location.href = 'dashboard-teacher.html';
+                } else {
+                    window.location.href = 'dashboard-student.html';
+                }
+            } else {
+                window.location.href = '../index.html';
+            }
+        });
+    }
+
+    // ส่วนจัดการปุ่ม "บันทึกผลประเมิน" (ของอาจารย์)
+    // ส่วนจัดการปุ่ม "บันทึกผลประเมิน" (ของอาจารย์)
+    const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+
+    if (submitFeedbackBtn) {
+        submitFeedbackBtn.addEventListener('click', async () => {
+            if (!currentSubmissionId) {
+                alert("กรุณาเลือกเวอร์ชันเอกสารก่อนทำการประเมิน");
+                return;
+            }
+
+            const statusSelect = document.getElementById('doc-status-select');
+            const commentInput = document.getElementById('teacher-comment');
+
+            const status = statusSelect ? statusSelect.value : null;
+            const comment = commentInput ? commentInput.value.trim() : "";
+
+            // 🌟 เงื่อนไขที่ 1: ตรวจสอบความยาวข้อความ (จำกัด 1000 ตัวอักษร)
+            if (comment.length > 1000) {
+                alert("ข้อเสนอแนะยาวเกินไป (จำกัด 1000 ตัวอักษร) กรุณาสรุปให้กระชับขึ้น");
+                return;
+            }
+
+            // 🌟 เงื่อนไขที่ 2: ถ้าเลือก "ไม่ผ่าน" ต้องบังคับพิมพ์ข้อเสนอแนะ
+            if (status === "ต้องแก้ไข" && comment === "") {
+                alert("กรุณาพิมพ์ข้อเสนอแนะเพื่อให้นิสิตนำไปแก้ไข");
+                commentInput.focus();
+                return;
+            }
+
+            // เปลี่ยนหน้าตาปุ่มกันการกดซ้ำ
+            const originalText = submitFeedbackBtn.innerText;
+            submitFeedbackBtn.disabled = true;
+            submitFeedbackBtn.innerText = "กำลังบันทึก...";
+
+            // 1. อัปเดตสถานะเอกสาร
+            if (status) {
+                const { error: updateError } = await supabaseClient
+                    .from('document_submission')
+                    .update({ processing_status: status })
+                    .eq('submission_id', currentSubmissionId);
+
+                if (updateError) {
+                    alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ: " + updateError.message);
+                    submitFeedbackBtn.disabled = false;
+                    submitFeedbackBtn.innerText = originalText;
+                    return;
+                }
+            }
+
+            // 2. บันทึกข้อเสนอแนะอาจารย์ลงตาราง feedback
+            if (comment) {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                const { error: insertError } = await supabaseClient
+                    .from('feedback')
+                    .insert([{
+                        submission_id: currentSubmissionId,
+                        user_id: user.id,
+                        details: comment
+                    }]);
+
+                if (insertError) {
+                    alert("เกิดข้อผิดพลาดในการบันทึกคอมเมนต์: " + insertError.message);
+                    submitFeedbackBtn.disabled = false;
+                    submitFeedbackBtn.innerText = originalText;
+                    return;
+                }
+                commentInput.value = ""; // ล้างช่องพิมพ์เมื่อบันทึกเสร็จ
+            }
+
+            // 3. เสร็จสิ้นกระบวนการ และรีเฟรชข้อมูล
+            alert("บันทึกผลการประเมินและข้อเสนอแนะสำเร็จ");
+
+            const currentProjectId = new URLSearchParams(window.location.search).get('id');
+            await loadSubmissionHistory(currentProjectId);
+
+            if (typeof loadTeacherFeedback === 'function') {
+                await loadTeacherFeedback(currentSubmissionId);
+            }
+
+            submitFeedbackBtn.disabled = false;
+            submitFeedbackBtn.innerText = originalText;
+        });
+    }
+
+    // ส่วนจัดการปุ่ม "อนุมัติโครงงาน" (ภาพรวม)
+    // สมมติว่าปุ่มใน HTML มี id="approve-project-btn" (ถ้าตั้งชื่ออื่นไว้ ให้แก้ตรงนี้ให้ตรงกันครับ)
+    // ส่วนจัดการปุ่ม "อนุมัติโครงงาน" (ภาพรวม)
+    const approveProjectBtn = document.getElementById('approve-project-btn');
+
+    if (approveProjectBtn) {
+        approveProjectBtn.addEventListener('click', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentProjectId = urlParams.get('id');
+
+            if (!currentProjectId) {
+                alert("ไม่พบรหัสโครงงาน");
+                return;
+            }
+
+            // เปลี่ยนหน้าตาปุ่มกันกดเบิ้ล
+            const originalText = approveProjectBtn.innerText;
+            approveProjectBtn.disabled = true;
+            approveProjectBtn.innerText = "กำลังตรวจสอบ...";
+
+            // 🌟 เงื่อนไขที่ 3: เช็กว่าเอกสารเวอร์ชันล่าสุด "ผ่าน" หรือยัง
+            const { data: latestSub, error: subError } = await supabaseClient
+                .from('document_submission')
+                .select('processing_status')
+                .eq('project_id', currentProjectId)
+                .order('submission_time', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (subError) {
+                alert("ตรวจสอบข้อมูลเอกสารขัดข้อง: " + subError.message);
+                approveProjectBtn.disabled = false;
+                approveProjectBtn.innerText = originalText;
+                return;
+            }
+
+            if (!latestSub || latestSub.processing_status !== "ผ่าน") {
+                alert("ไม่อนุญาตให้อนุมัติโครงงาน เนื่องจากเอกสารเวอร์ชันล่าสุดยังไม่ผ่านการประเมิน");
+                approveProjectBtn.disabled = false;
+                approveProjectBtn.innerText = originalText;
+                return;
+            }
+
+            // ถ้าเอกสารล่าสุดผ่านแล้ว ค่อยถามเพื่อความชัวร์
+            const confirmApprove = confirm("เอกสารล่าสุดผ่านการประเมินแล้ว คุณแน่ใจหรือไม่ว่าต้องการอนุมัติปิดโครงงานนี้?");
+            if (!confirmApprove) {
+                approveProjectBtn.disabled = false;
+                approveProjectBtn.innerText = originalText;
+                return;
+            }
+
+            approveProjectBtn.innerText = "กำลังอนุมัติ...";
+
+            // อัปเดตคอลัมน์ status ในตาราง project 
+            const { error: updateError } = await supabaseClient
+                .from('project')
+                .update({ status: 'เสร็จสิ้น' })
+                .eq('project_id', currentProjectId);
+
+            if (updateError) {
+                alert("เกิดข้อผิดพลาดในการอนุมัติโครงงาน: " + updateError.message);
+                approveProjectBtn.disabled = false;
+                approveProjectBtn.innerText = originalText;
+                return;
+            }
+
+            alert("อนุมัติโครงงานเรียบร้อยแล้ว!");
+            window.location.reload();
         });
     }
 
     // เรียกโหลด 3 คอลัมน์ด้านล่างให้ทำงาน;
     await Promise.all([
         loadDocumentFormats(),
-        loadSubmissionHistory(projectId)
+        loadSubmissionHistory(projectId),
     ]);
 });
 
 
 // ฟังก์ชันจัดการ ประวัติ, PDF, AI
-// โหลดตัวเลือกมาตรฐานเอกสารเข้า Dropdown
-async function loadDocumentFormats() {
-    const formatSelect = document.getElementById('format-select');
-    if (!formatSelect) return;
-
-    const { data: formats, error: error } = await supabaseClient
-        .from('document_format')
-        .select('*');
-
-    if (error) {
-        console.error("โหลดข้อมูลมาตรฐานล้มเหลว:", error);
-        formatSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
-        return;
-    }
-
-    if (formats && formats.length > 0) {
-        formatSelect.innerHTML = '<option value="" disabled selected>เลือกประวัติมาตรฐาน...</option>';
-        formats.forEach(format => {
-            const option = document.createElement('option');
-            option.value = format.format_id || format.id;
-            option.textContent = format.document_name;
-            formatSelect.appendChild(option);
-        });
-    } else {
-        formatSelect.innerHTML = '<option value="" disabled selected>ไม่มีข้อมูลในฐานข้อมูล</option>';
-    }
-}
-
 // โหลดประวัติการส่ง
 async function loadSubmissionHistory(projectId) {
     const listContainer = document.getElementById('version-list-container');
@@ -451,6 +635,24 @@ async function loadSubmissionHistory(projectId) {
         .eq('project_id', projectId)
         .order('submission_time', { ascending: false });
 
+    // 🌟 --- ส่วนที่เพิ่มใหม่: จัดการหน้าตาปุ่มอนุมัติโครงงาน ---
+    const approveProjectBtn = document.getElementById('approve-project-btn');
+
+    if (approveProjectBtn) {
+        if (!submissions || submissions.length === 0 || submissions[0].processing_status !== "ผ่าน") {
+            approveProjectBtn.disabled = true; // ล็อกไม่ให้กด
+            // เปลี่ยนคลาส Tailwind เป็นสีเทาๆ จางๆ และเปลี่ยน cursor เป็นรูปกากบาท/ห้ามกด
+            approveProjectBtn.className = "bg-gray-200 text-gray-400 px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed transition-colors";
+            approveProjectBtn.title = "เอกสารเวอร์ชันล่าสุดต้องผ่านการประเมินก่อน"; // ขึ้นข้อความตอนเอาเมาส์ชี้
+        } else {
+            approveProjectBtn.disabled = false; // ปลดล็อก
+            // คืนค่าคลาส Tailwind เดิมให้กลับมาเป็นสีน้ำเงินกดได้
+            approveProjectBtn.className = "bg-[#213f8c] text-white px-5 py-2 rounded-xl text-[13px] font-bold hover:bg-[#1a3270] shadow-md transition-colors cursor-pointer";
+            approveProjectBtn.title = "";
+        }
+    }
+    // 🌟 ---------------------------------------------
+
     if (error || !submissions || submissions.length === 0) {
         listContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีประวัติการส่ง</p>`;
         return;
@@ -459,8 +661,7 @@ async function loadSubmissionHistory(projectId) {
     listContainer.innerHTML = submissions.map((sub, index) => {
         const isLatest = index === 0;
         const isPass = sub.processing_status === "ผ่าน";
-        const dateStr = new Date(sub.submission_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
-
+        const dateStr = new Date(sub.submission_time).toLocaleDateString('th-TH');
         // แยกตัวแปรชื่อ และ อีเมล
         const fName = sub.users?.first_name || '';
         const lName = sub.users?.last_name || '';
@@ -496,6 +697,7 @@ async function loadSubmissionHistory(projectId) {
 
 // จัดการเมื่อกดเลือกประวัติ
 window.selectVersion = async function (submissionId, fileUrl, submittedBy, formatName, submissionTime, element) {
+    currentSubmissionId = submissionId;
     // ล้างไฮไลท์สีเทาออกจากการ์ดทุกใบ
     document.querySelectorAll('.version-card').forEach(el => el.classList.remove('bg-gray-100'));
 
@@ -531,6 +733,9 @@ window.selectVersion = async function (submissionId, fileUrl, submittedBy, forma
     }
 
     await loadAIInspection(submissionId);
+    if (typeof loadTeacherFeedback === 'function') {
+        await loadTeacherFeedback(submissionId);
+    }
 };
 
 // โหลดและแสดงผลการตรวจจาก AI
@@ -546,7 +751,7 @@ async function loadAIInspection(submissionId) {
         .from('ai_inspection')
         .select('ai_inspection_id')
         .eq('submission_id', submissionId)
-        .single();
+        .maybeSingle();
 
     if (!inspection) {
         feedbackContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่ได้รัน AI ตรวจสอบ</p>`;
@@ -628,12 +833,42 @@ async function loadAIInspection(submissionId) {
     feedbackContainer.innerHTML = finalHTML;
 }
 
+
+// นิสิต
+// โหลดตัวเลือกมาตรฐานเอกสารเข้า Dropdown 
+async function loadDocumentFormats() {
+    const formatSelect = document.getElementById('format-select');
+    if (!formatSelect) return;
+
+    const { data: formats, error: error } = await supabaseClient
+        .from('document_format')
+        .select('*');
+
+    if (error) {
+        console.error("โหลดข้อมูลมาตรฐานล้มเหลว:", error);
+        formatSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
+        return;
+    }
+
+    if (formats && formats.length > 0) {
+        formatSelect.innerHTML = '<option value="" disabled selected>เลือกประวัติมาตรฐาน...</option>';
+        formats.forEach(format => {
+            const option = document.createElement('option');
+            option.value = format.format_id || format.id;
+            option.textContent = format.document_name;
+            formatSelect.appendChild(option);
+        });
+    } else {
+        formatSelect.innerHTML = '<option value="" disabled selected>ไม่มีข้อมูลในฐานข้อมูล</option>';
+    }
+}
+
 // ระบบจัดการกล่องอัปโหลดไฟล์ (แจ้งเตือน & เช็คเงื่อนไข & ลบไฟล์)
 document.addEventListener("DOMContentLoaded", () => {
     const fileUpload = document.getElementById('file-upload');
     const fileLabel = document.getElementById('file-label');
     const fileIndicator = document.getElementById('file-indicator');
-    const clearFileBtn = document.getElementById('clear-file-btn'); 
+    const clearFileBtn = document.getElementById('clear-file-btn');
     const formatSelect = document.getElementById('format-select');
     const uploadBtn = document.getElementById('upload-btn');
 
@@ -653,6 +888,12 @@ document.addEventListener("DOMContentLoaded", () => {
         fileUpload.addEventListener('change', function () {
             if (this.files && this.files.length > 1) {
                 alert("สามารถแนบได้เพียงครั้งละ 1 ไฟล์เท่านั้น");
+                resetFileInput();
+                return;
+            }
+
+            if (this.files && this.files.length === 1 && !this.files[0].name.toLowerCase().endsWith('.pdf')) {
+                alert("รองรับเฉพาะไฟล์ PDF");
                 resetFileInput();
                 return;
             }
@@ -710,7 +951,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             (async () => {
                 try {
-                    // 1. อัปโหลดไฟล์ขึ้น Supabase Storage
+                    // อัปโหลดไฟล์ขึ้น Supabase Storage
                     const { error: uploadError } = await supabaseClient
                         .storage
                         .from(bucketName)
@@ -718,7 +959,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (uploadError) throw uploadError;
 
-                    // 2. ขอ URL ไฟล์แบบสาธารณะ
+                    // ขอ URL ไฟล์แบบสาธารณะ
                     const { data: publicUrlData } = supabaseClient
                         .storage
                         .from(bucketName)
@@ -726,11 +967,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const filePublicUrl = publicUrlData.publicUrl;
 
-                    // 3. ดึงข้อมูล User และ ID โครงงาน (ต้องประกาศตรงนี้ก่อนนำไปใช้)
+                    // ดึงข้อมูล User และ ID โครงงาน (ต้องประกาศตรงนี้ก่อนนำไปใช้)
                     const projectId = new URLSearchParams(window.location.search).get('id');
                     const { data: { user } } = await supabaseClient.auth.getUser();
 
-                    // 4. คำนวณหาลำดับการส่ง (submission_number) ล่าสุด
+                    // คำนวณหาลำดับการส่ง (submission_number) ล่าสุด
                     const { data: existingSubs, error: checkError } = await supabaseClient
                         .from('document_submission')
                         .select('submission_number')
@@ -745,11 +986,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         nextSubNumber = existingSubs[0].submission_number + 1;
                     }
 
-                    // 5. บังคับแปลงค่าจากข้อความให้เป็นตัวเลข ป้องกัน Error 400
+                    // บังคับแปลงค่าจากข้อความให้เป็นตัวเลข ป้องกัน Error 400
                     const numProjectId = parseInt(projectId);
                     const numFormatId = parseInt(formatId);
 
-                    // 6. บันทึกข้อมูลลงฐานข้อมูล
+                    // บันทึกข้อมูลลงฐานข้อมูล
                     const { error: insertError } = await supabaseClient
                         .from('document_submission')
                         .insert([{
@@ -765,7 +1006,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     alert("ส่งเอกสารสำเร็จเรียบร้อย! (v" + nextSubNumber + ")");
 
-                    // 7. รีเซ็ต UI และโหลดประวัติทางซ้ายใหม่
+                    // รีเซ็ต UI และโหลดประวัติทางซ้ายใหม่
                     resetFileInput();
                     formatSelect.value = "";
                     await loadSubmissionHistory(projectId);
@@ -774,7 +1015,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log("Upload Error:", err);
                     alert("เกิดข้อผิดพลาดในการส่งเอกสาร: " + (err.message || "ไม่ทราบสาเหตุ"));
                 } finally {
-                    // 8. ปลดล็อกปุ่มส่ง
+                    // ปลดล็อกปุ่มส่ง
                     uploadBtn.disabled = false;
                     uploadBtn.innerHTML = originalBtnContent;
                 }
@@ -782,3 +1023,157 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+
+
+
+// อาจารย์
+// โหลดประวัติคอมเมนต์ที่อาจารย์เคยพิมพ์ไว้
+// async function loadTeacherFeedback(submissionId) {
+//     const historyContainer = document.getElementById('teacher-feedback-history') || document.getElementById('teacher-feedback-container');
+//     if (!historyContainer) return;
+//     const { data: feedbacks } = await supabaseClient
+//         .from('feedback')
+//         .select('details, created_at, users(first_name)')
+//         .eq('submission_id', submissionId)
+//         .order('created_at', { ascending: false });
+
+//     if (!feedbacks || feedbacks.length === 0) {
+//         historyContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>`;
+//         return;
+//     }
+
+//     historyContainer.innerHTML = feedbacks.map(f => `
+//         <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-3">
+//             <p class="text-[11px] text-gray-500 mb-1">
+//                 ${new Date(f.created_at).toLocaleString('th-TH')} - โดยอาจารย์ ${f.users?.first_name || 'ไม่ทราบชื่อ'}
+//             </p>
+//             <p class="text-[13px] text-gray-800">${f.details}</p>
+//         </div>
+//     `).join('');
+// }
+
+// ==========================================
+// ส่วนจัดการคอมเมนต์อาจารย์ (โหลด, แก้ไข, ลบ)
+// ==========================================
+
+// โหลดประวัติคอมเมนต์ที่อาจารย์เคยพิมพ์ไว้
+async function loadTeacherFeedback(submissionId) {
+    const historyContainer = document.getElementById('teacher-feedback-history') || document.getElementById('teacher-feedback-container');
+    if (!historyContainer) return;
+
+    // 1. ดึง ID ของคนที่กำลังล็อกอินอยู่ เพื่อเอาไปเช็กว่าใครเป็นเจ้าของคอมเมนต์
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const currentUserId = user?.id;
+
+    // 2. ดึงข้อมูลคอมเมนต์ (เพิ่มการดึง feedback_id และ user_id มาด้วย)
+    const { data: feedbacks } = await supabaseClient
+        .from('feedback')
+        .select('feedback_id, details, created_at, user_id, users(first_name)')
+        .eq('submission_id', submissionId)
+        .order('created_at', { ascending: false });
+
+    if (!feedbacks || feedbacks.length === 0) {
+        historyContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>`;
+        return;
+    }
+
+    // 3. สร้างการ์ดคอมเมนต์พร้อมปุ่ม (ถ้าเป็นเจ้าของคอมเมนต์ ถึงจะเห็นปุ่ม)
+    historyContainer.innerHTML = feedbacks.map(f => {
+        const isOwner = f.user_id === currentUserId; // เช็กว่าเป็นคอมเมนต์ของตัวเองไหม
+
+        // โค้ดปุ่ม แก้ไข/ลบ
+        const actionButtons = isOwner ? `
+            <div class="flex gap-3 mt-2 justify-end">
+                <button onclick="editFeedback('${f.feedback_id}')" class="text-[11px] text-[#213f8c] hover:text-blue-800 font-bold transition-colors cursor-pointer">แก้ไข</button>
+                <button onclick="deleteFeedback('${f.feedback_id}', '${submissionId}')" class="text-[11px] text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer">ลบ</button>
+            </div>
+        ` : '';
+
+        return `
+            <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-3" id="feedback-card-${f.feedback_id}">
+                <p class="text-[11px] text-gray-500 mb-1">
+                    ${new Date(f.created_at).toLocaleString('th-TH')} - โดยอาจารย์ ${f.users?.first_name || 'ไม่ทราบชื่อ'}
+                </p>
+                
+                <!-- ส่วนแสดงข้อความปกติ -->
+                <p class="text-[13px] text-gray-800" id="feedback-text-${f.feedback_id}">${f.details}</p>
+                
+                <!-- ส่วนฟอร์มแก้ไข (จะถูกซ่อนไว้ก่อน และโชว์ตอนกดปุ่มแก้ไข) -->
+                <div id="edit-form-${f.feedback_id}" class="hidden mt-2">
+                    <textarea id="edit-input-${f.feedback_id}" class="w-full border border-gray-200 rounded p-2 text-[12px] mb-2 focus:outline-none focus:border-[#213f8c] resize-none" rows="3">${f.details}</textarea>
+                    <div class="flex gap-2 justify-end">
+                        <button onclick="cancelEdit('${f.feedback_id}')" class="text-[11px] text-gray-600 hover:text-gray-800 bg-gray-200 px-3 py-1.5 rounded-md transition-colors cursor-pointer">ยกเลิก</button>
+                        <button onclick="saveEdit('${f.feedback_id}', '${submissionId}')" class="text-[11px] text-white bg-[#213f8c] hover:bg-[#1a3270] px-3 py-1.5 rounded-md transition-colors cursor-pointer">บันทึกการแก้ไข</button>
+                    </div>
+                </div>
+                
+                <!-- กล่องใส่ปุ่ม แก้ไข/ลบ -->
+                <div id="action-btns-${f.feedback_id}">
+                    ${actionButtons}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ------------------------------------
+// ฟังก์ชันเสริมสำหรับการแก้ไขและลบ (Global Scope)
+// ------------------------------------
+
+// 1. ฟังก์ชันสั่งเปิดกล่องแก้ไข
+window.editFeedback = function (feedbackId) {
+    document.getElementById(`feedback-text-${feedbackId}`).classList.add('hidden'); // ซ่อนข้อความ
+    document.getElementById(`action-btns-${feedbackId}`).classList.add('hidden'); // ซ่อนปุ่ม แก้ไข/ลบ
+    document.getElementById(`edit-form-${feedbackId}`).classList.remove('hidden'); // โชว์กล่องพิมพ์
+};
+
+// 2. ฟังก์ชันยกเลิกการแก้ไข
+window.cancelEdit = function (feedbackId) {
+    document.getElementById(`feedback-text-${feedbackId}`).classList.remove('hidden');
+    document.getElementById(`action-btns-${feedbackId}`).classList.remove('hidden');
+    document.getElementById(`edit-form-${feedbackId}`).classList.add('hidden');
+};
+
+// 3. ฟังก์ชันบันทึกการแก้ไขลงฐานข้อมูล
+window.saveEdit = async function (feedbackId, submissionId) {
+    const newText = document.getElementById(`edit-input-${feedbackId}`).value.trim();
+    if (!newText) {
+        alert("กรุณากรอกข้อความ");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from('feedback')
+        .update({ details: newText })
+        .eq('feedback_id', feedbackId); // **หมายเหตุ: ถ้า Primary key ของตารางชื่อ 'id' ให้เปลี่ยนตรงนี้นะครับ**
+
+    if (error) {
+        alert("แก้ไขไม่สำเร็จ: " + error.message);
+        return;
+    }
+
+    // โหลดคอมเมนต์ใหม่มาโชว์
+    await loadTeacherFeedback(submissionId);
+};
+
+// 4. ฟังก์ชันลบคอมเมนต์
+window.deleteFeedback = async function (feedbackId, submissionId) {
+    if (!confirm("คุณต้องการลบคำแนะนำนี้ใช่หรือไม่?")) return;
+
+    const { error } = await supabaseClient
+        .from('feedback')
+        .delete()
+        .eq('feedback_id', feedbackId);
+
+    if (error) {
+        alert("ลบไม่สำเร็จ: " + error.message);
+        return;
+    }
+
+    // โหลดคอมเมนต์ใหม่มาโชว์
+    await loadTeacherFeedback(submissionId);
+};
+
+
+
