@@ -80,6 +80,17 @@ window.removeMember = async function (userId) {
         return;
     }
 
+    const { data: checkProj } = await supabaseClient
+        .from('project')
+        .select('creator_id')
+        .eq('project_id', projectId)
+        .single();
+
+    if (checkProj && checkProj.creator_id === userId) {
+        showError("ไม่สามารถลบเจ้าของโครงงานออกจากโครงงานได้");
+        return;
+    }
+
     // ดึงข้อมูลสมาชิกทั้งหมดในโครงงานปัจจุบันเพื่อมาเช็คจำนวน
     const { data: currentMembers, error: fetchError } = await supabaseClient
         .from('responsible_for')
@@ -221,15 +232,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (projectData.status === 'เสร็จสิ้น') {
         const uploadBtn = document.getElementById('upload-btn');
         if (uploadBtn) {
-            // หากล่องตัวแม่ที่ครอบปุ่มอัปโหลดไว้
             const uploadContainer = uploadBtn.closest('.absolute.bottom-4');
             if (uploadContainer) {
                 uploadContainer.innerHTML = `
                     <div class="bg-green-100 border border-green-200 text-green-700 px-6 py-2.5 rounded-full font-bold shadow-lg pointer-events-auto text-[13px] flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
                         โครงงานนี้ได้รับการอนุมัติเสร็จสิ้นแล้ว
                     </div>
                 `;
             }
+        }
+        const statusSelect = document.getElementById('doc-status-select');
+        const commentInput = document.getElementById('teacher-comment');
+        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+
+        if (statusSelect) statusSelect.disabled = true; // ล็อก Dropdown
+        if (commentInput) {
+            commentInput.disabled = true; // ล็อกกล่องพิมพ์
+            commentInput.placeholder = "โครงงานนี้ถูกปิดแล้ว ไม่สามารถประเมินเพิ่มเติมได้";
+        }
+        if (submitFeedbackBtn) {
+            submitFeedbackBtn.disabled = true; // ล็อกปุ่มเซฟ
+            submitFeedbackBtn.innerText = "ปิดการประเมิน";
+            submitFeedbackBtn.className = "bg-gray-200 text-gray-400 w-full py-2.5 rounded-xl text-[14px] font-bold cursor-not-allowed";
         }
     }
 
@@ -287,6 +314,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             roleText += " (คุณ)";
         }
 
+        const isCreator = member.user_id === projectData.creator_id;
+        if (isCreator) {
+            roleText += " (เจ้าของ)";
+        }
+
         // เช็ครูปโปรไฟล์
         const avatarUrl = member.users?.avatar_url;
         const avatarHTML = avatarUrl
@@ -294,6 +326,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             : `<div class="w-8 h-8 bg-[#93c5fd] text-[#1e3a8a] rounded-full flex items-center justify-center shrink-0">
                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" /></svg>
                </div>`;
+
+        const actionMenuHTML = isCreator ?
+            `<span class="text-xs font-medium text-gray-800 pr-2">${roleText}</span>`
+            : `
+            <div class="relative">
+                <div onclick="toggleMemberMenu(event, this)" class="flex items-center gap-1 cursor-pointer select-none py-1 px-2 rounded hover:bg-gray-50">
+                    <span class="text-xs text-gray-800 font-medium pr-1">${roleText}</span>
+                    <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+                <div class="member-dropdown hidden absolute top-full right-0 mt-1 bg-white border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.1)] rounded-lg py-1.5 w-20 z-30 text-center">
+                    <button onclick="removeMember('${member.user_id}')" class="text-[#e92b58] text-xs font-medium w-full py-1 cursor-pointer">ลบ</button>
+                </div>
+            </div>`;
 
         const memberHTML = `
             <div class="flex items-center justify-between relative mb-3">
@@ -304,16 +349,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <p class="text-[11px] text-gray-400">${email}</p> 
                     </div>
                 </div>
-                <div class="relative">
-                    <div onclick="toggleMemberMenu(event, this)" class="flex items-center gap-1 cursor-pointer select-none py-1 px-2 rounded hover:bg-gray-50">
-                        <span class="text-xs text-gray-800 font-medium pr-1">${roleText}</span>
-                        <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                    
-                    <div class="member-dropdown hidden absolute top-full right-0 mt-1 bg-white border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.1)] rounded-lg py-1.5 w-20 z-30 text-center">
-                        <button onclick="removeMember('${member.user_id}')" class="text-[#e92b58] text-xs font-medium w-full py-1 cursor-pointer">ลบ</button>
-                    </div>
-                </div>
+                ${actionMenuHTML}
             </div>
         `;
         membersContainer.insertAdjacentHTML('beforeend', memberHTML);
@@ -467,13 +503,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             const status = statusSelect ? statusSelect.value : null;
             const comment = commentInput ? commentInput.value.trim() : "";
 
-            // 🌟 เงื่อนไขที่ 1: ตรวจสอบความยาวข้อความ (จำกัด 1000 ตัวอักษร)
+            // ตรวจสอบความยาวข้อความ (จำกัด 1000 ตัวอักษร)
             if (comment.length > 1000) {
                 alert("ข้อเสนอแนะยาวเกินไป (จำกัด 1000 ตัวอักษร) กรุณาสรุปให้กระชับขึ้น");
                 return;
             }
 
-            // 🌟 เงื่อนไขที่ 2: ถ้าเลือก "ไม่ผ่าน" ต้องบังคับพิมพ์ข้อเสนอแนะ
+            // ถ้าเลือก "ไม่ผ่าน" ต้องบังคับพิมพ์ข้อเสนอแนะ
             if (status === "ต้องแก้ไข" && comment === "") {
                 alert("กรุณาพิมพ์ข้อเสนอแนะเพื่อให้นิสิตนำไปแก้ไข");
                 commentInput.focus();
@@ -509,7 +545,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     .insert([{
                         submission_id: currentSubmissionId,
                         user_id: user.id,
-                        details: comment
+                        details: comment,
+                        created_at: new Date().toISOString()
                     }]);
 
                 if (insertError) {
@@ -520,9 +557,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 commentInput.value = ""; // ล้างช่องพิมพ์เมื่อบันทึกเสร็จ
             }
-
-            // 3. เสร็จสิ้นกระบวนการ และรีเฟรชข้อมูล
-            alert("บันทึกผลการประเมินและข้อเสนอแนะสำเร็จ");
 
             const currentProjectId = new URLSearchParams(window.location.search).get('id');
             await loadSubmissionHistory(currentProjectId);
@@ -536,9 +570,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // ส่วนจัดการปุ่ม "อนุมัติโครงงาน" (ภาพรวม)
-    // สมมติว่าปุ่มใน HTML มี id="approve-project-btn" (ถ้าตั้งชื่ออื่นไว้ ให้แก้ตรงนี้ให้ตรงกันครับ)
-    // ส่วนจัดการปุ่ม "อนุมัติโครงงาน" (ภาพรวม)
     const approveProjectBtn = document.getElementById('approve-project-btn');
 
     if (approveProjectBtn) {
@@ -556,7 +587,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             approveProjectBtn.disabled = true;
             approveProjectBtn.innerText = "กำลังตรวจสอบ...";
 
-            // 🌟 เงื่อนไขที่ 3: เช็กว่าเอกสารเวอร์ชันล่าสุด "ผ่าน" หรือยัง
+            // ดช็กว่าเอกสารเวอร์ชันล่าสุด "ผ่าน" หรือยัง
             const { data: latestSub, error: subError } = await supabaseClient
                 .from('document_submission')
                 .select('processing_status')
@@ -635,23 +666,35 @@ async function loadSubmissionHistory(projectId) {
         .eq('project_id', projectId)
         .order('submission_time', { ascending: false });
 
-    // 🌟 --- ส่วนที่เพิ่มใหม่: จัดการหน้าตาปุ่มอนุมัติโครงงาน ---
-    const approveProjectBtn = document.getElementById('approve-project-btn');
+    const approveBtn = document.getElementById('approve-project-btn');
+    if (approveBtn) {
+        approveBtn.classList.remove('hidden');
+        const { data: projData } = await supabaseClient
+            .from('project')
+            .select('status')
+            .eq('project_id', projectId)
+            .single();
 
-    if (approveProjectBtn) {
-        if (!submissions || submissions.length === 0 || submissions[0].processing_status !== "ผ่าน") {
-            approveProjectBtn.disabled = true; // ล็อกไม่ให้กด
-            // เปลี่ยนคลาส Tailwind เป็นสีเทาๆ จางๆ และเปลี่ยน cursor เป็นรูปกากบาท/ห้ามกด
-            approveProjectBtn.className = "bg-gray-200 text-gray-400 px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed transition-colors";
-            approveProjectBtn.title = "เอกสารเวอร์ชันล่าสุดต้องผ่านการประเมินก่อน"; // ขึ้นข้อความตอนเอาเมาส์ชี้
+        if (projData && projData.status === "เสร็จสิ้น") {
+            // 1. ถ้าโครงงานเสร็จแล้ว -> เปลี่ยนเป็นป้ายสีเขียว กดไม่ได้
+            approveBtn.disabled = true;
+            approveBtn.innerText = "อนุมัติโครงงานแล้ว";
+            approveBtn.className = "bg-[#dcfce7] text-[#16a34a] px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed";
+            approveBtn.title = "";
+        } else if (!submissions || submissions.length === 0 || submissions[0].processing_status !== "ผ่าน") {
+            // 2. ถ้าเอกสารยังไม่ผ่าน -> ปุ่มสีเทา กดไม่ได้
+            approveBtn.disabled = true;
+            approveBtn.innerText = "อนุมัติโครงงาน";
+            approveBtn.className = "bg-gray-200 text-gray-400 px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed transition-colors";
+            approveBtn.title = "เอกสารเวอร์ชันล่าสุดต้องผ่านการประเมินก่อน";
         } else {
-            approveProjectBtn.disabled = false; // ปลดล็อก
-            // คืนค่าคลาส Tailwind เดิมให้กลับมาเป็นสีน้ำเงินกดได้
-            approveProjectBtn.className = "bg-[#213f8c] text-white px-5 py-2 rounded-xl text-[13px] font-bold hover:bg-[#1a3270] shadow-md transition-colors cursor-pointer";
-            approveProjectBtn.title = "";
+            // 3. ถ้าเอกสารผ่านแล้ว พร้อมอนุมัติ -> ปุ่มสีน้ำเงิน กดได้
+            approveBtn.disabled = false;
+            approveBtn.innerText = "อนุมัติโครงงาน";
+            approveBtn.className = "bg-[#213f8c] text-white px-5 py-2 rounded-xl text-[13px] font-bold hover:bg-[#1a3270] shadow-md transition-colors cursor-pointer";
+            approveBtn.title = "";
         }
     }
-    // 🌟 ---------------------------------------------
 
     if (error || !submissions || submissions.length === 0) {
         listContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีประวัติการส่ง</p>`;
@@ -851,7 +894,7 @@ async function loadDocumentFormats() {
     }
 
     if (formats && formats.length > 0) {
-        formatSelect.innerHTML = '<option value="" disabled selected>เลือกประวัติมาตรฐาน...</option>';
+        formatSelect.innerHTML = '<option value="" disabled selected>เลือกมาตรฐานเอกสาร</option>';
         formats.forEach(format => {
             const option = document.createElement('option');
             option.value = format.format_id || format.id;
@@ -1029,35 +1072,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // อาจารย์
 // โหลดประวัติคอมเมนต์ที่อาจารย์เคยพิมพ์ไว้
-// async function loadTeacherFeedback(submissionId) {
-//     const historyContainer = document.getElementById('teacher-feedback-history') || document.getElementById('teacher-feedback-container');
-//     if (!historyContainer) return;
-//     const { data: feedbacks } = await supabaseClient
-//         .from('feedback')
-//         .select('details, created_at, users(first_name)')
-//         .eq('submission_id', submissionId)
-//         .order('created_at', { ascending: false });
-
-//     if (!feedbacks || feedbacks.length === 0) {
-//         historyContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>`;
-//         return;
-//     }
-
-//     historyContainer.innerHTML = feedbacks.map(f => `
-//         <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-3">
-//             <p class="text-[11px] text-gray-500 mb-1">
-//                 ${new Date(f.created_at).toLocaleString('th-TH')} - โดยอาจารย์ ${f.users?.first_name || 'ไม่ทราบชื่อ'}
-//             </p>
-//             <p class="text-[13px] text-gray-800">${f.details}</p>
-//         </div>
-//     `).join('');
-// }
-
-// ==========================================
-// ส่วนจัดการคอมเมนต์อาจารย์ (โหลด, แก้ไข, ลบ)
-// ==========================================
-
-// โหลดประวัติคอมเมนต์ที่อาจารย์เคยพิมพ์ไว้
 async function loadTeacherFeedback(submissionId) {
     const historyContainer = document.getElementById('teacher-feedback-history') || document.getElementById('teacher-feedback-container');
     if (!historyContainer) return;
@@ -1066,7 +1080,7 @@ async function loadTeacherFeedback(submissionId) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const currentUserId = user?.id;
 
-    // 2. ดึงข้อมูลคอมเมนต์ (เพิ่มการดึง feedback_id และ user_id มาด้วย)
+    // 2. ดึงข้อมูลคอมเมนต์ 
     const { data: feedbacks } = await supabaseClient
         .from('feedback')
         .select('feedback_id, details, created_at, user_id, users(first_name)')
@@ -1099,7 +1113,6 @@ async function loadTeacherFeedback(submissionId) {
                 <!-- ส่วนแสดงข้อความปกติ -->
                 <p class="text-[13px] text-gray-800" id="feedback-text-${f.feedback_id}">${f.details}</p>
                 
-                <!-- ส่วนฟอร์มแก้ไข (จะถูกซ่อนไว้ก่อน และโชว์ตอนกดปุ่มแก้ไข) -->
                 <div id="edit-form-${f.feedback_id}" class="hidden mt-2">
                     <textarea id="edit-input-${f.feedback_id}" class="w-full border border-gray-200 rounded p-2 text-[12px] mb-2 focus:outline-none focus:border-[#213f8c] resize-none" rows="3">${f.details}</textarea>
                     <div class="flex gap-2 justify-end">
@@ -1117,25 +1130,22 @@ async function loadTeacherFeedback(submissionId) {
     }).join('');
 }
 
-// ------------------------------------
-// ฟังก์ชันเสริมสำหรับการแก้ไขและลบ (Global Scope)
-// ------------------------------------
-
-// 1. ฟังก์ชันสั่งเปิดกล่องแก้ไข
+// การแก้ไขและลบ (Global Scope)
+// เปิดกล่องแก้ไข
 window.editFeedback = function (feedbackId) {
     document.getElementById(`feedback-text-${feedbackId}`).classList.add('hidden'); // ซ่อนข้อความ
     document.getElementById(`action-btns-${feedbackId}`).classList.add('hidden'); // ซ่อนปุ่ม แก้ไข/ลบ
     document.getElementById(`edit-form-${feedbackId}`).classList.remove('hidden'); // โชว์กล่องพิมพ์
 };
 
-// 2. ฟังก์ชันยกเลิกการแก้ไข
+// ยกเลิกการแก้ไข
 window.cancelEdit = function (feedbackId) {
     document.getElementById(`feedback-text-${feedbackId}`).classList.remove('hidden');
     document.getElementById(`action-btns-${feedbackId}`).classList.remove('hidden');
     document.getElementById(`edit-form-${feedbackId}`).classList.add('hidden');
 };
 
-// 3. ฟังก์ชันบันทึกการแก้ไขลงฐานข้อมูล
+// บันทึกการแก้ไขลงฐานข้อมูล
 window.saveEdit = async function (feedbackId, submissionId) {
     const newText = document.getElementById(`edit-input-${feedbackId}`).value.trim();
     if (!newText) {
@@ -1146,7 +1156,7 @@ window.saveEdit = async function (feedbackId, submissionId) {
     const { error } = await supabaseClient
         .from('feedback')
         .update({ details: newText })
-        .eq('feedback_id', feedbackId); // **หมายเหตุ: ถ้า Primary key ของตารางชื่อ 'id' ให้เปลี่ยนตรงนี้นะครับ**
+        .eq('feedback_id', feedbackId);
 
     if (error) {
         alert("แก้ไขไม่สำเร็จ: " + error.message);
@@ -1157,7 +1167,7 @@ window.saveEdit = async function (feedbackId, submissionId) {
     await loadTeacherFeedback(submissionId);
 };
 
-// 4. ฟังก์ชันลบคอมเมนต์
+// ลบคอมเมนต์
 window.deleteFeedback = async function (feedbackId, submissionId) {
     if (!confirm("คุณต้องการลบคำแนะนำนี้ใช่หรือไม่?")) return;
 
