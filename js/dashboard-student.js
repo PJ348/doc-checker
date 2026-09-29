@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerText = "กำลังสร้าง...";
+            submitBtn.innerText = "กำลังสร้าง... ";
             submitBtn.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
         }
 

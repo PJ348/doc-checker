@@ -592,7 +592,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .from('document_submission')
                 .select('processing_status')
                 .eq('project_id', currentProjectId)
-                .order('submission_time', { ascending: false })
+                .order('submission_number', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
@@ -664,7 +664,7 @@ async function loadSubmissionHistory(projectId) {
             document_format ( document_name )
         `)
         .eq('project_id', projectId)
-        .order('submission_time', { ascending: false });
+        .order('submission_number', { ascending: false });
 
     const approveBtn = document.getElementById('approve-project-btn');
     if (approveBtn) {
@@ -785,16 +785,18 @@ window.selectVersion = async function (submissionId, fileUrl, submittedBy, forma
 async function loadAIInspection(submissionId) {
     const feedbackContainer = document.getElementById('ai-feedback-container');
     const metricsContainer = document.getElementById('ai-metrics-container');
+    const statusBadge = document.getElementById('status-badge');
+
     if (!feedbackContainer) return;
 
     feedbackContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">กำลังโหลดผลตรวจ...</p>`;
     if (metricsContainer) metricsContainer.classList.add('hidden');
 
-    const { data: inspection } = await supabaseClient
+    const { data: inspection, error: inspError } = await supabaseClient
         .from('ai_inspection')
-        .select('ai_inspection_id')
+        .select('ai_inspection_id, ai_confidence, severity, is_passed')
         .eq('submission_id', submissionId)
-        .maybeSingle();
+        .single();
 
     if (!inspection) {
         feedbackContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่ได้รัน AI ตรวจสอบ</p>`;
@@ -811,11 +813,33 @@ async function loadAIInspection(submissionId) {
         return;
     }
 
-    // แสดงป้ายบอกเปอร์เซ็นต์
-    if (results.length > 0 && results[0].ai_confidence !== null && metricsContainer) {
-        document.getElementById('confidence-badge').innerText = `ความมั่นใจ ${results[0].ai_confidence}%`;
-        document.getElementById('severity-badge').innerText = `ความรุนแรง ${results[0].severity || '-'}`;
-        metricsContainer.classList.remove('hidden');
+    if (inspection) {
+        const baseClasses = "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold border";
+
+        // 1. ส่วนแสดงผลความมั่นใจและความรุนแรง
+        if (metricsContainer && (inspection.ai_confidence != null || inspection.severity != null)) {
+            if (inspection.ai_confidence != null) {
+                document.getElementById('confidence-badge').innerText = `ความมั่นใจ ${inspection.ai_confidence}%`;
+                document.getElementById('confidence-badge').className = `${baseClasses} border-blue-200 bg-blue-50 text-blue-700`;
+            }
+            if (inspection.severity != null) {
+                document.getElementById('severity-badge').innerText = `ความสี่ยง ${inspection.severity}`;
+                document.getElementById('severity-badge').className = `${baseClasses} border-amber-200 bg-amber-50 text-amber-700`;
+            }
+            metricsContainer.classList.remove('hidden');
+        }
+
+        // 2. ส่วนแสดงผล ผ่าน / ไม่ผ่าน
+        if (statusBadge && inspection.is_passed != null) {
+            const isPass = inspection.is_passed === true;
+            statusBadge.innerText = isPass ? 'ผ่าน' : 'ไม่ผ่าน';
+
+            if (isPass) {
+                statusBadge.className = `${baseClasses} border-green-200 bg-green-50 text-green-700`;
+            } else {
+                statusBadge.className = `${baseClasses} border-red-200 bg-red-50 text-red-600`;
+            }
+        }
     }
 
     // คัดแยกกลุ่มข้อมูล
@@ -969,7 +993,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!hasFile && !hasFormat) return;
 
             if (hasFile && !hasFormat) {
-                alert("กรุณาเลือกประวัติมาตรฐานก่อนกดส่งเอกสาร");
+                alert("กรุณาเลือกมาตรฐานเอกสารก่อนกดส่งเอกสาร");
                 return;
             }
 
@@ -978,19 +1002,54 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // เริ่มกระบวนการส่งไฟล์
+            // 1. ล็อกปุ่มและใส่ไอคอนหมุน (Spinner) เล็กๆ ไว้ที่ปุ่มเหมือนเดิม
             const originalBtnContent = uploadBtn.innerHTML;
-            uploadBtn.disabled = true; // ล็อกปุ่มไว้กันกดซ้ำ
+            uploadBtn.disabled = true;
             uploadBtn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+            // 2. ดึงกล่องแสดงผล AI มาใช้โชว์สถานะการทำงาน
+            const feedbackContainer = document.getElementById('ai-feedback-container');
+            const metricsContainer = document.getElementById('ai-metrics-container');
+            const statusBadge = document.getElementById('status-badge');
+
+            if (metricsContainer) metricsContainer.classList.add('hidden');
+            if (statusBadge) statusBadge.classList.add('hidden');
+
+            // ฟังก์ชันสร้างกล่องข้อความสถานะโชว์ในช่อง AI Feedback
+            const renderProgressStatus = (title, detail, type = 'info') => {
+                if (!feedbackContainer) return;
+
+                let bgColor = 'bg-blue-50 border-blue-200 text-blue-800';
+                let icon = `<svg class="animate-spin h-5 w-5 text-blue-600 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+                if (type === 'success') {
+                    bgColor = 'bg-green-50 border-green-200 text-green-800';
+                    icon = `<svg class="h-5 w-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                } else if (type === 'error') {
+                    bgColor = 'bg-red-50 border-red-200 text-red-800';
+                    icon = `<svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                }
+
+                feedbackContainer.innerHTML = `
+                    <div class="p-4 rounded-xl border ${bgColor} flex items-start gap-3 my-2 shadow-sm transition-all">
+                        ${icon}
+                        <div>
+                            <p class="font-bold text-[13px]">${title}</p>
+                            <p class="text-[12px] opacity-90 mt-0.5">${detail}</p>
+                        </div>
+                    </div>
+                `;
+            };
 
             const file = fileUpload.files[0];
             const formatId = formatSelect.value;
-
-            // สร้างชื่อไฟล์ใหม่เป็นภาษาอังกฤษ+ตัวเลข (ป้องกัน error ชื่อไฟล์ภาษาไทย)
             const projectId = new URLSearchParams(window.location.search).get('id');
             const fileExt = file.name.split('.').pop();
             const safeFileName = `doc_proj${projectId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
             const bucketName = 'student_submissions';
+
+            // เริ่มโชว์สถานะสเต็ปที่ 1: กำลังอัปโหลด
+            renderProgressStatus("กำลังอัปโหลดเอกสาร", "ระบบกำลังบันทึกไฟล์ PDF");
 
             (async () => {
                 try {
@@ -1002,19 +1061,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (uploadError) throw uploadError;
 
-                    // ขอ URL ไฟล์แบบสาธารณะ
                     const { data: publicUrlData } = supabaseClient
                         .storage
                         .from(bucketName)
                         .getPublicUrl(safeFileName);
 
                     const filePublicUrl = publicUrlData.publicUrl;
-
-                    // ดึงข้อมูล User และ ID โครงงาน (ต้องประกาศตรงนี้ก่อนนำไปใช้)
-                    const projectId = new URLSearchParams(window.location.search).get('id');
                     const { data: { user } } = await supabaseClient.auth.getUser();
 
-                    // คำนวณหาลำดับการส่ง (submission_number) ล่าสุด
                     const { data: existingSubs, error: checkError } = await supabaseClient
                         .from('document_submission')
                         .select('submission_number')
@@ -1029,36 +1083,70 @@ document.addEventListener("DOMContentLoaded", () => {
                         nextSubNumber = existingSubs[0].submission_number + 1;
                     }
 
-                    // บังคับแปลงค่าจากข้อความให้เป็นตัวเลข ป้องกัน Error 400
-                    const numProjectId = parseInt(projectId);
-                    const numFormatId = parseInt(formatId);
-
-                    // บันทึกข้อมูลลงฐานข้อมูล
-                    const { error: insertError } = await supabaseClient
+                    // บันทึกข้อมูลลงตาราง document_submission
+                    const { data: newSubmissionData, error: insertError } = await supabaseClient
                         .from('document_submission')
                         .insert([{
-                            project_id: numProjectId,
-                            format_id: numFormatId,
+                            project_id: parseInt(projectId),
+                            format_id: parseInt(formatId),
                             file_link: filePublicUrl,
                             processing_status: 'รอดำเนินการ',
                             user_id: user?.id,
                             submission_number: nextSubNumber
-                        }]);
+                        }])
+                        .select()
+                        .single();
 
                     if (insertError) throw insertError;
 
-                    alert("ส่งเอกสารสำเร็จเรียบร้อย! (v" + nextSubNumber + ")");
+                    // โชว์สถานะสเต็ปที่ 2: อัปโหลดสำเร็จแล้ว กำลังให้ AI ตรวจ
+                    renderProgressStatus(
+                        `อัปโหลดสำเร็จ (v${nextSubNumber}) กำลังส่งให้ AI ตรวจสอบ`,
+                        "ระบบกำลังวิเคราะห์เนื้อหาเปรียบเทียบกับมาตรฐาน โปรดรอสักครู่"
+                    );
 
-                    // รีเซ็ต UI และโหลดประวัติทางซ้ายใหม่
-                    resetFileInput();
-                    formatSelect.value = "";
-                    await loadSubmissionHistory(projectId);
+                    // เรียก Edge Function 'ai-inspector'
+                    try {
+                        const { data: aiResponse, error: aiError } = await supabaseClient.functions.invoke('ai-inspector', {
+                            body: {
+                                submission_id: newSubmissionData.submission_id,
+                                file_url: filePublicUrl
+                            }
+                        });
+
+                        if (aiError) throw aiError;
+
+                        // โชว์สถานะสเต็ปที่ 3: สำเร็จเรียบร้อย
+                        renderProgressStatus("AI ตรวจสอบเสร็จสิ้น!", "กำลังโหลดผลการวิเคราะห์", "success");
+
+                        resetFileInput();
+                        formatSelect.value = "";
+                        await loadSubmissionHistory(projectId);
+
+                    } catch (aiErr) {
+                        console.error("AI Error:", aiErr);
+
+                        // ถ้า AI ขัดข้อง ให้โชว์การ์ดสีแดงแจ้งผู้ใช้อย่างชัดเจนว่า "ขัดข้อง"
+                        renderProgressStatus(
+                            "การตรวจสอบโดย AI ขัดข้อง",
+                            `ระบบบันทึกไฟล์ (v${nextSubNumber}) เรียบร้อยแล้ว แต่การประเมินจาก AI ล้มเหลว (${aiErr.message || "เกิดข้อผิดพลาดทางเทคนิค"})`,
+                            "error"
+                        );
+
+                        resetFileInput();
+                        formatSelect.value = "";
+                        await loadSubmissionHistory(projectId);
+                    }
 
                 } catch (err) {
                     console.log("Upload Error:", err);
-                    alert("เกิดข้อผิดพลาดในการส่งเอกสาร: " + (err.message || "ไม่ทราบสาเหตุ"));
+                    renderProgressStatus(
+                        "อัปโหลดไฟล์ไม่สำเร็จ",
+                        err.message || "เกิดข้อผิดพลาดในการส่งเอกสาร",
+                        "error"
+                    );
                 } finally {
-                    // ปลดล็อกปุ่มส่ง
+                    // ปลดล็อกคืนค่าปุ่มกด
                     uploadBtn.disabled = false;
                     uploadBtn.innerHTML = originalBtnContent;
                 }
