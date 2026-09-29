@@ -94,9 +94,7 @@
 
                 <!-- ปุ่มอนุมัติโครงงาน (เฉพาะอาจารย์) -->
                 <div class="ml-auto">
-                    <button id="approve-project-btn"
-                        class="bg-[#213f8c] text-white px-5 py-2 rounded-xl text-[13px] font-bold hover:bg-[#1a3270] shadow-md transition-colors cursor-pointer">
-                        อนุมัติสำเร็จโครงงาน
+                    <button id="approve-project-btn" class="hidden">
                     </button>
                 </div>
             </div>
@@ -140,6 +138,7 @@
                 <!-- ผลตรวจจาก AI -->
                 <div id="ai-content-area" class="pr-2">
                     <div id="ai-metrics-container" class="flex flex-wrap gap-2 hidden mb-4">
+                        <span id="status-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold"></span>
                         <span id="confidence-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 text-[11px] font-bold"></span>
                         <span id="severity-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 text-[11px] font-bold"></span>
                     </div>

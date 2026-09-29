@@ -157,7 +157,7 @@
                         
                         <div class="flex-1 px-3 border-l border-gray-100 ml-1 flex items-center relative">
                             <select id="format-select" class="w-full appearance-none bg-transparent text-[13px] font-medium text-gray-700 outline-none cursor-pointer pr-6 truncate">
-                                <option value="" disabled selected>เลือกประวัติมาตรฐาน...</option>
+                                <option value="" disabled selected>เลือกมาตรฐานเอกสาร</option>
                             </select>
 
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400 absolute right-2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,8 +188,9 @@
                 <!-- ผลตรวจจาก AI -->
                 <div id="ai-content-area" class="pr-2">
                     <div id="ai-metrics-container" class="flex flex-wrap gap-2 hidden mb-4">
-                        <span id="confidence-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 text-[11px] font-bold"></span>
-                        <span id="severity-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 text-[11px] font-bold"></span>
+                        <span id="status-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold"></span>
+                        <span id="confidence-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold"></span>
+                        <span id="severity-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold"></span>
                     </div>
                     <ul id="ai-feedback-container" class="list-disc pl-5 space-y-6 text-[13px] text-gray-700 marker:text-gray-400">
                         <p class="text-sm text-gray-400 text-center py-4">เลือกเวอร์ชันเพื่อดูผลตรวจ</p>
