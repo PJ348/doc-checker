@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             .maybeSingle();
 
         if (!roleData) {
-            window.location.href = "/html/sign-in.html";
+            window.location.href = "/html/sign-up.html";
             return; 
         }
 
