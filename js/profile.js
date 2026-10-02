@@ -68,13 +68,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                         
                         <div class="flex flex-col overflow-hidden">
                             <span class="text-[13px] font-bold text-gray-900 truncate">${displayName}</span>
-                            <span class="text-[12px] text-gray-500 truncate mt-0.5">${userEmail}</span>
-                        </div>
+                            <span class="text-[12px] text-gray-500 truncate mt-0.5 truncate">${userEmail}</span>
+                        </div> 
                     </div>  
                     
-                        <button id="logout-btn" class="text-[12px] text-[#c81e1e] hover:text-[#8b0000] transition-colors cursor-pointer focus:outline-none">
-                            ออกจากระบบ
-                        </button>
+                    <button id="logout-btn" class="shrink-0 whitespace-nowrap text-[12px] text-[#c81e1e] hover:text-[#8b0000] transition-colors cursor-pointer focus:outline-none">
+                        ออกจากระบบ
+                    </button>
                    
                 </div> 
             </div>

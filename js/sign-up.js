@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let isValid = true;
         // signUpButton.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
-        
+
         const validateField = (value, errorEl) => {
             if (!value) {
                 errorEl.classList.remove('hidden');
@@ -76,10 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
             isValid = false;
         }
 
-        if (!isValid) {
-            // console.log("ข้อมูลไม่ครบ หยุดการส่งข้อมูล!");
-            return;
-        }
+        if (!isValid) return;
+
+        // signupBtn.innerText = "กำลังสร้างบัญชี...";
         signUpButton.disabled = true;
         signUpButton.classList.add('opacity-50', 'cursor-not-allowed');
         const resetButton = () => {
@@ -145,4 +144,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    const googleBtn = document.getElementById('google-login-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    // เมื่อล็อกอิน Google เสร็จ ให้วิ่งไปที่หน้า complete-profile.html
+                    redirectTo: window.location.origin + "/html/complete-profile.html" 
+                }
+            });
+
+            if (error) {
+                console.error("Google Login Error:", error.message);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ Google");
+            }
+        });
+    }
 });
