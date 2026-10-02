@@ -40,21 +40,27 @@ document.addEventListener("DOMContentLoaded", async () => {
             .eq('user_id', userId)
             .maybeSingle();
 
-        if (!roleData) {
-            window.location.href = "/html/sign-up.html";
-            return; 
+        if (roleData) {
+            if (roleData.role_id === 1) window.location.href = "/html/dashboard-student.html";
+            else if (roleData.role_id === 2) window.location.href = "/html/dashboard-teacher.html";
+            else if (roleData.role_id === 3) window.location.href = "/html/dashboard-admin.html";
+            return;
         }
+        // if (!roleData) {
+        //     window.location.href = "/html/sign-up.html";
+        //     return; 
+        // }
 
-        const roleId = roleData.role_id;
-        if (roleId === 1) {
-            window.location.href = "/html/dashboard-student.html";
-        } else if (roleId === 2) {
-            window.location.href = "/html/dashboard-teacher.html";
-        } else if (roleId === 3) {
-            window.location.href = "/html/dashboard-admin.html";
-        } else {
-            alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
-        }
+        // const roleId = roleData.role_id;
+        // if (roleId === 1) {
+        //     window.location.href = "/html/dashboard-student.html";
+        // } else if (roleId === 2) {
+        //     window.location.href = "/html/dashboard-teacher.html";
+        // } else if (roleId === 3) {
+        //     window.location.href = "/html/dashboard-admin.html";
+        // } else {
+        //     alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
+        // }
     }
 
     const inputFields = [
