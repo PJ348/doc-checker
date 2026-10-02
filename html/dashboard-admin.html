@@ -1,20 +1,41 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Admin</title>
-    <link href="./src/output.css" rel="stylesheet">
-    
+    <link href="../src/output.css" rel="stylesheet">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ซ่อน Scrollbar แต่ยังเลื่อนได้ */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
 </head>
 
-<body style="font-family: 'Sarabun', sans-serif;" class="bg-slate-100 flex items-center justify-center min-h-screen">
+<body class="bg-[#e2edf8] p-4 md:p-8 font-sans h-screen flex flex-col">
 
+    <div class="bg-[#213f8c] h-14 md:h-16 w-full flex items-center justify-end px-6 md:px-8">
+        <!-- รูปโปรไฟล์ -->
+        <div id="profile-menu-container" class="relative">
+        </div>
+    </div>
 
+    <script type="module" src="../js/dashboard-admin.js"></script>
+    <script type="module" src="../js/dashboard-student.js"></script>
+    <script type="module" src="../js/profile.js"></script>
 </body>
 
 </html>
