@@ -11,8 +11,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             .maybeSingle();
 
         if (error || !roleData) {
-            alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
-            // window.location.href = "/html/complete-profile.html";
+            // alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
+            window.location.href = "/html/complete-profile.html";
             return;
         }
 
@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.error("ไม่พบข้อมูลสิทธิ์:", roleError?.message);
                 alert("เกิดข้อผิดพลาด: ไม่พบสิทธิ์การเข้าใช้งานของบัญชีนี้");
                 return;
-            }
+            } 
 
             const roleId = roleData.role_id;
             if (roleId === 1) {
