@@ -11,7 +11,9 @@ export default defineConfig({
         dashboardProjectTh: resolve(__dirname, 'html/dashboard-project-th.html'),
         teacher: resolve(__dirname, 'html/dashboard-teacher.html'),
         admin: resolve(__dirname, 'html/dashboard-admin.html'),
-        signup: resolve(__dirname, 'html/sign-up.html')
+        signup: resolve(__dirname, 'html/sign-up.html'),
+        forgotPassword: resolve(__dirname, 'html/forgot-password.html'),
+        updatePassword: resolve(__dirname, 'html/update-password.html'),
       },
     },
   },
