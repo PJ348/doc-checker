@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${currentUrl}../index.html`
+                    redirectTo: `${currentUrl}/html/complete-profile.html`
                 }
             });
 
