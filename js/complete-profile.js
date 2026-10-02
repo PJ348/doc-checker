@@ -33,6 +33,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (roleData?.role_id === 3) window.location.href = "/html/dashboard-admin.html";
         return;
     }
+    //  const roleId = roleData.role_id;
+    //         if (roleId === 1) {
+    //             window.location.href = "/html/dashboard-student.html";
+    //         } else if (roleId === 2) {
+    //             window.location.href = "/html/dashboard-teacher.html";
+    //         } else if (roleId === 3) {
+    //             window.location.href = "/html/dashboard-admin.html";
+    //         } else {
+    //             alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
+    //         }
 
     // กรณีเป็นผู้ใช้ใหม่: ดำเนินการต่อในหน้านี้
     // เอาชื่อจาก Google มาแยกใส่ช่อง ชื่อ-นามสกุล ให้ล่วงหน้า (ถ้ามี)

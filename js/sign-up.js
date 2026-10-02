@@ -148,11 +148,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const googleBtn = document.getElementById('google-login-btn');
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
+
+            const currentUrl = window.location.origin;
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // เมื่อล็อกอิน Google เสร็จ ให้วิ่งไปที่หน้า complete-profile.html
-                    redirectTo: window.location.origin + "/html/complete-profile.html" 
+                    redirectTo: `${currentUrl}../index.html`
                 }
             });
 

@@ -1,4 +1,33 @@
 import { supabaseClient } from './supabase.js';
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    
+    // ถ้าสถานะคือ ล็อกอินสำเร็จแล้ว
+    if (event === 'SIGNED_IN' && session) {
+        
+        const { data: roleData, error } = await supabaseClient
+            .from('user_role')
+            .select('role_id')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+        if (error || !roleData) {
+            alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
+            return;
+        }
+
+        const roleId = roleData.role_id;
+            if (roleId === 1) {
+                window.location.href = "/html/dashboard-student.html";
+            } else if (roleId === 2) {
+                window.location.href = "/html/dashboard-teacher.html";
+            } else if (roleId === 3) {
+                window.location.href = "/html/dashboard-admin.html";
+            } else {
+                alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
+            }
+    }
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
     // เช็กว่ามีคนล็อกอินค้างไว้ในระบบเครื่องนี้ไหม
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -6,17 +35,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         // ถ้ามีค้างไว้ ให้ดึงสิทธิ์แล้วเด้งเข้า Dashboard อัตโนมัติทันที
         const userId = session.user.id;
         const { data: roleData } = await supabaseClient
-        .from('user_role')
-        .select('role_id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-        if (roleData) {
-            if (roleData.role_id === 1) window.location.href = "/html/dashboard-student.html";
-            else if (roleData.role_id === 2) window.location.href = "/html/dashboard-teacher.html";
-            else if (roleData.role_id === 3) window.location.href = "/html/dashboard-admin.html";
-            return;
-        }
+            .from('user_role')
+            .select('role_id')
+            .eq('user_id', userId)
+            .maybeSingle();
+            
+        const roleId = roleData.role_id;
+            if (roleId === 1) {
+                window.location.href = "/html/dashboard-student.html";
+            } else if (roleId === 2) {
+                window.location.href = "/html/dashboard-teacher.html";
+            } else if (roleId === 3) {
+                window.location.href = "/html/dashboard-admin.html";
+            } else {
+                alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
+            }
     }
 
     const inputFields = [
@@ -42,12 +75,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Login
     const loginButton = document.getElementById("login-btn");
-    
+
     if (!loginButton) return;
     document.addEventListener("keydown", (e) => {
         if (e.key === "Enter") loginButton.click();
     });
-    
+
 
     loginButton.addEventListener("click", async () => {
         const emailInput = document.getElementById('email');
@@ -131,11 +164,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const googleBtn = document.getElementById('google-login-btn');
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
+
+            const currentUrl = window.location.origin;
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // เมื่อล็อกอิน Google เสร็จ ให้วิ่งไปที่หน้า complete-profile.html
-                    redirectTo: window.location.origin + "/html/complete-profile.html" 
+                    redirectTo: `${currentUrl}../index.html`
                 }
             });
 
