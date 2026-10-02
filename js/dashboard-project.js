@@ -274,6 +274,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         `)
         .eq('project_id', projectId);
 
+    const membersContainer = document.getElementById('members-list-container');
+    membersContainer.innerHTML = "";
+
     if (membersError) {
         console.error("Error fetching members:", membersError);
         membersContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">โหลดรายชื่อสมาชิกไม่สำเร็จ</p>`;
@@ -285,8 +288,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-    const membersContainer = document.getElementById('members-list-container');
-    membersContainer.innerHTML = "";
 
     if (!membersData || membersData.length === 0) {
         membersContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีสมาชิกในโครงงานนี้</p>`;
@@ -796,7 +797,7 @@ async function loadAIInspection(submissionId) {
         .from('ai_inspection')
         .select('ai_inspection_id, ai_confidence, severity, is_passed')
         .eq('submission_id', submissionId)
-        .single();
+        .maybeSingle();
 
     if (!inspection) {
         feedbackContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่ได้รัน AI ตรวจสอบ</p>`;
