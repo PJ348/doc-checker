@@ -1,5 +1,23 @@
 import { supabaseClient } from './supabase.js';
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    // เช็กว่ามีคนล็อกอินค้างไว้ในระบบเครื่องนี้ไหม
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        // ถ้ามีค้างไว้ ให้ดึงสิทธิ์แล้วเด้งเข้า Dashboard อัตโนมัติทันที
+        const userId = session.user.id;
+        const { data: roleData } = await supabaseClient
+        .from('user_role')
+        .select('role_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+        if (roleData) {
+            if (roleData.role_id === 1) window.location.href = "/html/dashboard-student.html";
+            else if (roleData.role_id === 2) window.location.href = "/html/dashboard-teacher.html";
+            else if (roleData.role_id === 3) window.location.href = "/html/dashboard-admin.html";
+            return;
+        }
+    }
 
     const inputFields = [
         { inputId: 'email', errorId: 'email_error' },
@@ -89,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .from('user_role')
                 .select('role_id')
                 .eq('user_id', data.user.id)
-                .single();
+                .maybeSingle();
 
             if (roleError || !roleData) {
                 console.error("ไม่พบข้อมูลสิทธิ์:", roleError?.message);
@@ -109,4 +127,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    const googleBtn = document.getElementById('google-login-btn');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    // เมื่อล็อกอิน Google เสร็จ ให้วิ่งไปที่หน้า complete-profile.html
+                    redirectTo: window.location.origin + "/html/complete-profile.html" 
+                }
+            });
+
+            if (error) {
+                console.error("Google Login Error:", error.message);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ Google");
+            }
+        });
+    }
 });
