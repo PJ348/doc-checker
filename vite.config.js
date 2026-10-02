@@ -14,6 +14,7 @@ export default defineConfig({
         signup: resolve(__dirname, 'html/sign-up.html'),
         forgotPassword: resolve(__dirname, 'html/forgot-password.html'),
         updatePassword: resolve(__dirname, 'html/update-password.html'),
+        completeProfile: resolve(__dirname, 'html/complete-profile.html')
       },
     },
   },
