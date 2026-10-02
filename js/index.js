@@ -1,32 +1,32 @@
 import { supabaseClient } from './supabase.js';
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
+// supabaseClient.auth.onAuthStateChange(async (event, session) => {
     
-    // ถ้าสถานะคือ ล็อกอินสำเร็จแล้ว
-    if (event === 'SIGNED_IN' && session) {
+//     // ถ้าสถานะคือ ล็อกอินสำเร็จแล้ว
+//     if (event === 'SIGNED_IN' && session) {
         
-        const { data: roleData, error } = await supabaseClient
-            .from('user_role')
-            .select('role_id')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
+//         const { data: roleData, error } = await supabaseClient
+//             .from('user_role')
+//             .select('role_id')
+//             .eq('user_id', session.user.id)
+//             .maybeSingle();
 
-        if (error || !roleData) {
-            alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
-            return;
-        }
+//         if (error || !roleData) {
+//             alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
+//             return;
+//         }
 
-        const roleId = roleData.role_id;
-            if (roleId === 1) {
-                window.location.href = "/html/dashboard-student.html";
-            } else if (roleId === 2) {
-                window.location.href = "/html/dashboard-teacher.html";
-            } else if (roleId === 3) {
-                window.location.href = "/html/dashboard-admin.html";
-            } else {
-                alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
-            }
-    }
-});
+//         const roleId = roleData.role_id;
+//             if (roleId === 1) {
+//                 window.location.href = "/html/dashboard-student.html";
+//             } else if (roleId === 2) {
+//                 window.location.href = "/html/dashboard-teacher.html";
+//             } else if (roleId === 3) {
+//                 window.location.href = "/html/dashboard-admin.html";
+//             } else {
+//                 alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
+//             }
+//     }
+// });
 
 document.addEventListener("DOMContentLoaded", async () => {
     // เช็กว่ามีคนล็อกอินค้างไว้ในระบบเครื่องนี้ไหม
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             .select('role_id')
             .eq('user_id', userId)
             .maybeSingle();
-            
+
         const roleId = roleData.role_id;
             if (roleId === 1) {
                 window.location.href = "/html/dashboard-student.html";
