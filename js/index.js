@@ -11,8 +11,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             .maybeSingle();
 
         if (error || !roleData) {
-            // alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
-            window.location.href = "/html/complete-profile.html";
+            alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
+            // window.location.href = "/html/complete-profile.html";
             return;
         }
 
