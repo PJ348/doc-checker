@@ -11,8 +11,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             .maybeSingle();
 
         if (error || !roleData) {
-            // alert("ไม่พบข้อมูลสิทธิ์การใช้งานในระบบ");
-            // window.location.href = "/html/complete-profile.html";
+            window.location.href = "/html/complete-profile.html";
             return;
         }
 
@@ -26,6 +25,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
+    const pageLoader = document.getElementById('page-loader');
     // เช็กว่ามีคนล็อกอินค้างไว้ในระบบเครื่องนี้ไหม
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
@@ -42,6 +42,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             else if (roleData.role_id === 2) window.location.href = "/html/dashboard-teacher.html";
             else if (roleData.role_id === 3) window.location.href = "/html/dashboard-admin.html";
             return;
+        } else {
+            window.location.href = "/html/complete-profile.html";
+            return;
+        }
+    } else {
+        // ถ้าไม่มีคนล็อกอิน ให้ซ่อนหน้าจอโหลด
+        if (pageLoader) {
+            pageLoader.style.opacity = '0';
+            setTimeout(() => pageLoader.style.display = 'none', 300);
         }
     }
 
@@ -139,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.error("ไม่พบข้อมูลสิทธิ์:", roleError?.message);
                 alert("เกิดข้อผิดพลาด: ไม่พบสิทธิ์การเข้าใช้งานของบัญชีนี้");
                 return;
-            } 
+            }
 
             const roleId = roleData.role_id;
             if (roleId === 1) {
@@ -158,12 +167,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
 
-            const currentUrl = window.location.origin;
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                   redirectTo: `${window.location.origin}/html/complete-profile.html`
-                }
+                provider: 'google'
             });
             if (error) {
                 console.error("Google Login Error:", error.message);
