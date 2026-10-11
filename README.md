@@ -2,16 +2,18 @@
 
 ![Project Status](https://img.shields.io/badge/Project_Status-Active-green) ![Academic Year](https://img.shields.io/badge/Academic_Year-2026_(2569)-blue)
 
-โปรเจกต์นี้เป็นส่วนหนึ่งของรายวิชา Fundamental of Database System 227202[2] สำหรับปีการศึกษา 2569 โดยเป็นเว็บไซต์ที่พัฒนาขึ้นเพื่อช่วยจัดการการส่งเอกสารโครงงานของนิสิต และนำเทคโนโลยี AI มาช่วยตรวจสอบเบื้องต้นว่าเอกสารมีความสอดคล้องกับมาตรฐานและรูปแบบที่กำหนดไว้หรือไม่ เพื่อลดภาระและเวลาในการตรวจเอกสารของทั้งอาจารย์และนิสิต
+โปรเจกต์นี้เป็นส่วนหนึ่งของรายวิชา Fundamental of Database System 227202 สำหรับปีการศึกษา 2569 โดยเป็นเว็บไซต์ที่พัฒนาขึ้นเพื่อช่วยจัดการการส่งเอกสารโครงงานของนิสิต และนำเทคโนโลยี AI มาช่วยตรวจสอบเบื้องต้นว่าเอกสารมีความสอดคล้องกับมาตรฐานและรูปแบบที่กำหนดไว้หรือไม่ เพื่อลดภาระและเวลาในการตรวจเอกสารของทั้งอาจารย์และนิสิต
 
-> This project is a website developed by Fundamental of Database System 227202[2], for the academic year 2026. The system aims to manage student project document submissions and utilize AI to automatically validate document formatting against predefined standards, significantly reducing the manual checking time for both instructors and students.
+> This project is a website developed by Fundamental of Database System 227202, for the academic year 2026. The system aims to manage student project document submissions and utilize AI to automatically validate document formatting against predefined standards, significantly reducing the manual checking time for both instructors and students.
 
 ---
 
 ## Table of Contents
 - [Completed Functions](#completed-functions)
 - [Limitations & Out of Scope](#limitations--out-of-scope)
-- [Tech Stack Frontend](#tech-stack-frontend)
+- [Technologies Used](#technologies-used)
+- [Database Architecture](#database-architecture)
+- [Installation & Setup](#installation--setup)
 - [User Manual](#user-manual)
 - [Team Job Position](#team-job-position)
 - [Demo](#demo)
@@ -65,11 +67,28 @@
 
 ---
 
-## Tech Stack Frontend
+## Technologies Used
 
-เครื่องมือและเทคโนโลยีที่ใช้ในการพัฒนาส่วนหน้าบ้าน (Frontend):
+เครื่องมือและเทคโนโลยีที่ใช้ในการพัฒนาระบบ:
 
-*(รอระบุข้อมูลเครื่องมือที่กลุ่มเลือกใช้ เช่น React, Vue.js, Tailwind CSS ฯลฯ)*
+*   **Frontend:** HTML, Tailwind, JavaScript
+*   **Backend / Database:** Supabase
+*   **AI Integration:** Gemini API
+*   **Version Control:** Git & GitHub
+
+---
+
+## Database Architecture
+
+โครงสร้างฐานข้อมูลของระบบถูกออกแบบด้วยความสัมพันธ์แบบ Relational Database รองรับการทำ Audit Log, Versioning และ Role-based Access Control 
+
+  * รูป ER Diagram
+    <img width="2467" height="1962" alt="ER drawio" src="https://github.com/user-attachments/assets/ebd1b036-d2fb-48a5-bf05-806c6d14ae5a" />
+    หากภาพไม่ชัด สามารถคลิกดูไฟล์ PDF ได้ที่ลิงก์นี้: [ลิงก์ดู ER Diagram ฉบับเต็ม](https://drive.google.com/file/d/1JtRKfmBdhFsp18bkuMi4ElZBJIF7mSG-/view?usp=sharing)
+
+* รูป Schema
+  <img width="1197" height="1858" alt="SCHEMA  drawio" src="https://github.com/user-attachments/assets/c1749f06-cf2d-4522-a3b9-50b3138bf844" />
+  หากภาพไม่ชัด สามารถคลิกดูไฟล์ PDF ได้ที่ลิงก์นี้: [ลิงก์ดู ER Diagram ฉบับเต็ม](https://drive.google.com/file/d/12pAeKD42PSYLX5ceezn8fhYxcE0lnKh4/view?usp=sharing) 
 
 ---
 
@@ -86,15 +105,15 @@
 
 | Student ID | Name | Position |
 | --- | --- | --- |
-| 68023403 | นางสาวภรณ์ทินรดา จันทร์เพ็ญ | *(Front-End Developer and Back-End Developer / Project Leader)* |
-| 68025461 | นางสาวพิชญดา ใสโสภณ | *(UX/UI Design and BA)* |
+| 68023403 | นางสาวภรณ์ทินรดา จันทร์เพ็ญ | *(Front-End, Back-End Developer & System Analyst (SA) / Project Leader)* |
+| 68025461 | นางสาวพิชญดา ใสโสภณ | *(UX/UI Design & Business Analyst (BA))* |
 
 ---
 
 ## Demo
 
 สามารถทดลองใช้งานเว็บไซต์จริงได้ที่นี่:
-- * [ลิงก์สำหรับเข้าใช้งานเว็บไซต์ https://teams.public.onecdn.static.microsoft/evergreen-assets/safelinks/2/atp-safelinks.html 
+- * ลิงก์สำหรับเข้าใช้งานเว็บไซต์: https://teams.public.onecdn.static.microsoft/evergreen-assets/safelinks/2/atp-safelinks.html](https://doc-checker-12mu.vercel.app/)
 
 ---
 
