@@ -101,5 +101,8 @@
 ## Contact
 
 หากมีข้อสงสัยหรือคำถามเกี่ยวกับโปรเจกต์ สามารถติดต่อผู้ดูแลโปรเจกต์ได้ที่:
-- อีเมล: *(รอระบุอีเมลติดต่อ)*
-- GitHub: *(รอระบุลิงก์ GitHub)*
+- อีเมล: *( pornthinrada.janphen@gmail.com
+ )*
+- GitHub: *(  PJ348 (PJ) )*
+- อีเมล: *( phichayada.saisophon@gmail.com )*
+- GitHub: *(  68025461-bit (mei) )*
