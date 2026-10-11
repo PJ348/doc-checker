@@ -56,27 +56,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             <!-- Dropdown Menu -->
             <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-[320px] bg-white rounded-2xl shadow-xl border border-gray-200 z-50 p-5">
-                <div class="flex justify-between items-start gap-4">
-                    <div class="flex items-center gap-3">
-                        <!-- รูปโปรไฟล์ด้านใน Dropdown -->
-                        <div id="open-avatar-modal-btn" class="relative group w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer">
-                            ${profileDisplay}
-                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                                <span class="text-white text-xs">แก้ไข</span>
-                            </div>
+                <div class="flex items-center gap-3">
+                    <!-- รูปโปรไฟล์ด้านใน Dropdown -->
+                    <div id="open-avatar-modal-btn" class="relative group w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer">
+                        ${profileDisplay}
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                            <span class="text-white text-xs">แก้ไข</span>
                         </div>
-                        
-                        <div class="flex flex-col overflow-hidden">
-                            <span class="text-[13px] font-bold text-gray-900 truncate">${displayName}</span>
-                            <span class="text-[12px] text-gray-500 truncate mt-0.5 truncate">${userEmail}</span>
-                        </div> 
-                    </div>  
+                    </div>
                     
-                    <button id="logout-btn" class="shrink-0 whitespace-nowrap text-[12px] text-[#c81e1e] hover:text-[#8b0000] transition-colors cursor-pointer focus:outline-none">
-                        ออกจากระบบ
-                    </button>
-                   
-                </div> 
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">    
+                        <div class="flex items-center justify-between gap-2">                        
+                            <p class="text-[13px] font-bold text-gray-900 truncate">${displayName}</p>
+                            <button id="logout-btn" class="shrink-0 whitespace-nowrap text-[12px] text-[#c81e1e] hover:text-[#8b0000] transition-colors cursor-pointer focus:outline-none">
+                                ออกจากระบบ
+                            </button>
+                        </div> 
+                        <p class="text-[12px] text-gray-500 truncate mt-0.5 truncate">${userEmail}</p>
+                
+                    </div>
+                </div>  
             </div>
         `;
         injectModalHTML();

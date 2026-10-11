@@ -15,8 +15,10 @@
 <body style="font-family: 'Sarabun', sans-serif;" class="bg-slate-100 flex items-center justify-center min-h-screen">
 
     <!-- Card Container -->
-    <div
-        class="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden min-h-[500px]">
+    <div class="flex flex-col md:flex-row w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden min-h-[500px]">
+
+        <div id="page-loader" class="fixed inset-0 bg-slate-100 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+        </div>
 
         <!-- Left Panel (Blue) -->
         <div class="w-full md:w-5/12 bg-[#213f8c] p-10 md:p-14 flex flex-col justify-center">
@@ -88,8 +90,6 @@
 
     </div>
 
-    <!-- <script src="./node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
     <script type="module" src="./js/supabase.js"></script>
     <script type="module" src="./js/index.js"></script>
 </body>

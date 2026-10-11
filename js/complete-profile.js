@@ -1,6 +1,15 @@
 import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", async () => {
-    // document.body.style.visibility = 'hidden';
+    const backBtn = document.getElementById('back-to-login-btn'); 
+    
+    if (backBtn) {
+        backBtn.addEventListener('click', async (e) => {
+            e.preventDefault();            
+            await supabaseClient.auth.signOut(); 
+            window.location.href = "../index.html"; 
+        });
+    }
+    
     // ดึงข้อมูล Session จาก Supabase
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
@@ -33,16 +42,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         else if (roleData?.role_id === 3) window.location.href = "/html/dashboard-admin.html";
         return;
     }
-    //  const roleId = roleData.role_id;
-    //         if (roleId === 1) {
-    //             window.location.href = "/html/dashboard-student.html";
-    //         } else if (roleId === 2) {
-    //             window.location.href = "/html/dashboard-teacher.html";
-    //         } else if (roleId === 3) {
-    //             window.location.href = "/html/dashboard-admin.html";
-    //         } else {
-    //             alert("สิทธิ์ผู้ใช้งานไม่ถูกต้องในระบบ");
-    //         }
 
     // กรณีเป็นผู้ใช้ใหม่: ดำเนินการต่อในหน้านี้
     // เอาชื่อจาก Google มาแยกใส่ช่อง ชื่อ-นามสกุล ให้ล่วงหน้า (ถ้ามี)
@@ -106,14 +105,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // ฟังก์ชันรีเซ็ตปุ่มกลับเป็นปกติเมื่อเกิด Error
         const resetButton = () => {
-            // signupBtn.innerText = "สร้างบัญชี";
             signupBtn.disabled = false;
             signupBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         };
 
         try {
             // เปลี่ยนหน้าตาปุ่มเพื่อบอกสถานะกำลังโหลด
-            // signupBtn.innerText = "กำลังสร้างบัญชี...";
             signupBtn.disabled = true;
             signupBtn.classList.add('opacity-50', 'cursor-not-allowed');
 

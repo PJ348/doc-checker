@@ -1,5 +1,9 @@
 import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", () => {
+    const pageLoader = document.getElementById('page-loader');
+    if (pageLoader) {
+        pageLoader.style.display = 'none';
+    }
 
     const inputFields = [
         { inputId: 'firstname', errorId: 'first_name_error' },
@@ -46,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const passwordError = document.getElementById('password_error');
 
         let isValid = true;
-        // signUpButton.classList.add('opacity-50', 'cursor-not-allowed'); // เปลี่ยนหน้าตาปุ่มให้ดูรู้ว่าโหลดอยู่
 
         const validateField = (value, errorEl) => {
             if (!value) {
@@ -78,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!isValid) return;
 
-        // signupBtn.innerText = "กำลังสร้างบัญชี...";
         signUpButton.disabled = true;
         signUpButton.classList.add('opacity-50', 'cursor-not-allowed');
         const resetButton = () => {
@@ -149,12 +151,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
 
-            const currentUrl = window.location.origin;
             const { data, error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${currentUrl}/html/complete-profile.html`
-                }
+                provider: 'google'
             });
 
             if (error) {

@@ -14,8 +14,7 @@
         rel="stylesheet">
 </head>
 
-<body class="bg-[#e2edf8] p-4 md:p-8 font-sans h-screen flex flex-col">
-
+<body style="font-family: 'Sarabun', sans-serif;" class=" bg-[#eaf1f8] min-h-screen relative flex flex-col mx-6">
     <div class="max-w-8xl mt-4 mx-auto w-full flex-1 bg-white rounded-t-[2rem] shadow-xl overflow-hidden flex flex-col min-h-[600px]">
 
         <!-- Dark Blue Top Bar -->
@@ -26,15 +25,307 @@
         </div>
 
         <!-- Header Section -->
-        <div class="pt-12 pb-10 px-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-[#213f8c] mb-8">AI Document Format Checker</h1>
+        <div class="pt-12 pb-10 px-10 flex justify-between  items-center flex-wrap gap-4">
+            <h1 class="text-xl md:text-4xl font-bold text-[#213f8c]">AI Document Format Checker</h1>
+            <div
+                class="flex bg-white border border-gray-200 rounded-xl text-xs font-medium p-1 shadow-sm overflow-x-auto max-w-full">
+                <button id="tab-home"
+                    class="bg-[#213f8c] text-white px-5 py-2 rounded-xl whitespace-nowrap transition-all">
+                    หน้าหลัก
+                </button>
+                <button id="tab-roles"
+                    class="text-gray-500 hover:text-gray-700 px-5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer">
+                    จัดการสิทธิ์
+                </button>
+                <button id="tab-formats"
+                    class="text-gray-500 hover:text-gray-700 px-5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer">
+                    มาตรฐานเอกสาร
+                </button> 
+                <button id="tab-logs"
+                    class="text-gray-500 hover:text-gray-700 px-5 py-2 rounded-xl whitespace-nowrap transition-all cursor-pointer">
+                    Audit Logs
+                </button>
+            </div>
         </div>
-        
-    </div>
 
-    <!-- <script type="module" src="../js/dashboard-admin.js"></script> -->
-    <script type="module" src="../js/dashboard-student.js"></script>
-    <script type="module" src="../js/profile.js"></script>
+        <!-- Overview Stats Cards -->
+        <div id="section-home">
+            <!-- Card 1 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6  px-14">
+
+                <div class="border border-gray-200 bg-white rounded-2xl p-6 flex justify-between items-center transition-shadow hover:shadow-md">
+                    <div>
+                        <p class="text-[13px] text-gray-500 font-medium mb-1">ผู้ใช้งานทั้งหมด</p>
+                        <p id="total-users" class="text-3xl font-bold text-gray-900"> <span class="text-sm font-normal text-gray-500">คน</span></p>
+                    </div>
+                    <div
+                        class="w-12 h-12 bg-orange-50 rounded-[0.8rem] flex justify-center items-center text-orange-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="border border-gray-200 bg-white rounded-2xl p-6 flex justify-between items-center transition-shadow hover:shadow-md">
+                    <div>
+                        <p class="text-[13px] text-gray-500 font-medium mb-1">มาตรฐานเอกสารทั้งหมด</p>
+                        <p id="total-formats" class="text-3xl font-bold text-gray-900"><span class="text-sm font-normal text-gray-500">รูปแบบ</span></p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-[0.8rem] flex justify-center items-center text-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="my-14 px-14">
+                <h2 class="text-xl font-bold text-[#213f8c]">การทำงานล่าสุด</h2>
+                <div class="border border-gray-200 rounded-2xl overflow-hidden mt-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-[#f9fafb] border-b border-gray-200 text-sm text-gray-500 font-medium">
+                                <th class="px-6 py-4 w-[15%]">เวลา</th>
+                                <th class="px-6 py-4 w-[20%]">ผู้ดำเนินการ</th>
+                                <th class="px-6 py-4 w-[50%]">การกระทำ</th>
+                                <th class="px-6 py-4 w-[15%]">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-logs-recent" class="text-sm text-gray-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: จัดการสิทธิ์ (ซ่อนไว้ก่อน) -->
+        <div id="section-roles" class="hidden px-14">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-[#213f8c]">จัดการสิทธิ์และบทบาทผู้ใช้งาน</h2>
+                    <p class="text-[13px] text-gray-500 font-medium mt-1">ปรับเปลี่ยนสถานะการเข้าถึง</p>
+                </div>
+                <div class="relative w-full md:w-80">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" placeholder="ค้นหาชื่อ, อีเมล หรือรหัสผู้ใช้..."
+                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent shadow-sm">
+                </div>
+            </div>
+            <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <table class="w-full text-left border-collapse table-fixed ">
+                    <thead class="">
+                        <tr class="bg-[#f9fafb] border-b border-gray-200 text-[13px] text-gray-500 font-bold">
+                            <th class="pl-6 py-5 w-[25%]">ชื่อ - นามสกุล</th>
+                            <th class="px-6 py-5 w-[30%]">อีเมล</th>
+                            <th class="px-6 py-5 w-[25%]">บทบาทปัจจุบัน</th>
+                            <th class="px-6 py-5 w-[15%] text-center">ปรับเปลี่ยนบทบาท</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-roles-body" class="text-sm text-gray-800"></tbody>
+                </table>
+
+                <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                    <p class="text-[13px] text-gray-500">แสดง <span id="roles-start"
+                            class="font-bold text-gray-700">0</span> ถึง <span id="roles-end"
+                            class="font-bold text-gray-700">0</span> จาก <span id="roles-total"
+                            class="font-bold text-gray-700">0</span> รายการ</p>
+                    <div class="flex gap-1" id="roles-pagination">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: รูปแบบเอกสาร (ซ่อนไว้ก่อน) -->
+        <div id="section-formats" class="hidden px-14 pb-14">
+            
+            <!-- หน้ารายการหลัก (โชว์ตอนแรก) -->
+            <div id="formats-main-view">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-[#213f8c]">จัดการมาตรฐานเอกสาร</h2>
+                        <p class="text-[13px] text-gray-500 font-medium mt-1">กำหนดและควบคุมเกณฑ์การจัดรูปแบบแยกตามสาขาวิชา</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <input type="text" placeholder="ค้นหาสาขา หรือ คณะ..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent shadow-sm">
+                        </div>
+                        <button id="btn-add-format" class="bg-[#213f8c] text-white px-5 py-2 rounded-xl text-sm font-medium hover:bg-[#18306b] transition-colors whitespace-nowrap flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            เพิ่มมาตรฐานใหม่
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-[#f9fafb] text-[13px] font-bold text-gray-500">
+                        <div class="col-span-5 md:col-span-4 pl-2">ชื่อมาตรฐาน / สาขาวิชา</div>
+                        <div class="hidden md:block md:col-span-3">คณะ / ปีการศึกษา</div>
+                        <div class="hidden lg:block lg:col-span-2">วันที่เพิ่ม</div>
+                        <div class="col-span-7 md:col-span-5 lg:col-span-3 text-right pr-4">สถานะ และ จัดการ</div>
+                    </div>
+
+                    <!-- รายการตัวอย่าง -->
+                    <div id="formats-list-container" class="flex flex-col">
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าฟอร์มสร้างมาตรฐานใหม่-->
+            <div id="add-format-container" class="hidden max-w-6xl mx-auto bg-white">
+                <div class="mb-8 pb-4">
+                    <div class="flex items-center gap-5">
+                        <button type="button" id="btn-back-format" class="p-2.5 text-gray-500 hover:text-[#213f8c] transition-colors cursor-pointer shrink-0 mt-0.5" title="กลับไปหน้ารายชื่อ">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-bold text-[#213f8c]">เพิ่มมาตรฐานเอกสารใหม่</h2>
+                            <p class="text-sm text-gray-500 mt-1">กำหนดรูปแบบ อัปโหลดไฟล์ต้นแบบ และตั้งค่าข้อกำหนดสำหรับการตรวจสอบ</p>
+                        </div>
+                    </div>
+                </div>
+            
+                <form id="upload-format-form" class="px-14">
+                    <!-- ส่วนที่ 1: ข้อมูลพื้นฐาน -->
+                    <h3 class="text-[15px] font-bold text-gray-800 mb-4 flex items-center gap-2"><span class="bg-[#213f8c] w-1.5 h-4 rounded-full"></span> ข้อมูลทั่วไป</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                        <div class="col-span-1 md:col-span-3">
+                            <label class="block text-[13px] font-bold text-gray-700 mb-2">ชื่อมาตรฐานเอกสาร <span class="text-red-500">*</span></label>
+                            <input type="text" id="format_name" placeholder="เช่น รายงานโครงงานวิศวกรรมซอฟต์แวร์" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-[13px] font-bold text-gray-700 mb-2">ปีการศึกษา <span class="text-red-500">*</span></label>
+                            <input type="number" id="academic_year" placeholder="เช่น 2569" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-[13px] font-bold text-gray-700 mb-2">คณะ <span class="text-red-500">*</span></label>
+                            <select id="faculty" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all bg-white shadow-sm cursor-pointer">
+                                <option value="" disabled selected>เลือกคณะ...</option>
+                                <option value="ict">เทคโนโลยีสารสนเทศและการสื่อสาร</option>
+                                <option value="sci">วิทยาศาสตร์</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[13px] font-bold text-gray-700 mb-2">สาขาวิชา <span class="text-red-500">*</span></label>
+                            <select id="major" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c] focus:border-transparent transition-all bg-white shadow-sm cursor-pointer">
+                            </select>
+                        </div>
+                    </div>
+            
+                    <!-- ส่วนที่ 2: ข้อกำหนดรูปแบบ -->
+                    <h3 class="text-[15px] font-bold text-gray-800 mb-4 flex items-center gap-2"><span class="bg-[#213f8c] w-1.5 h-4 rounded-full"></span> ข้อกำหนดการจัดหน้ากระดาษ (Rules)</h3>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-8 shadow-sm">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="col-span-2">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">รูปแบบฟอนต์</label>
+                                <select id="rule_font" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c] bg-white cursor-pointer">
+                                    <option value="TH Sarabun PSK">TH Sarabun PSK</option>
+                                    <option value="TH Sarabun New">TH Sarabun New</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">ขนาดฟอนต์ (pt)</label><input type="number" id="rule_font_size" value="16" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">ระยะบรรทัด</label><input type="text" id="rule_line_spacing" value="1.0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">กั้นหน้าซ้าย (นิ้ว)</label><input type="text" id="rule_margin_left" value="1.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">กั้นหลังขวา (นิ้ว)</label><input type="text" id="rule_margin_right" value="1.0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">ขอบบน (นิ้ว)</label><input type="text" id="rule_margin_top" value="1.5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1">ขอบล่าง (นิ้ว)</label><input type="text" id="rule_margin_bottom" value="1.0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#213f8c]"></div>
+                        </div>
+                    </div>
+            
+                    <!-- ส่วนที่ 3: พื้นที่ลากไฟล์ -->
+                    <h3 class="text-[15px] font-bold text-gray-800 mb-4 flex items-center gap-2"><span class="bg-[#213f8c] w-1.5 h-4 rounded-full"></span> ไฟล์เอกสารต้นแบบ</h3>
+                    <div class="mb-8">
+                        <div id="drop-zone" class="w-full border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-blue-50/50 hover:border-[#213f8c] transition-all cursor-pointer relative overflow-hidden">
+                            <input type="file" id="file_input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,.doc,.docx">
+                            <div id="upload-content" class="text-center pointer-events-none transition-opacity">
+                                <div class="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                    <svg class="w-8 h-8 text-[#213f8c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                </div>
+                                <p class="text-[15px] text-gray-700 font-bold"><span class="text-[#213f8c]">คลิกเพื่อเลือกไฟล์</span> หรือลากไฟล์มาวางที่นี่</p>
+                                <p class="text-xs text-gray-400 mt-2">รองรับไฟล์ .PDF, .DOC, .DOCX ขนาดไม่เกิน 10MB</p>
+                            </div>
+                            <div id="file-preview" class="hidden flex items-center justify-between w-full max-w-md bg-white px-4 py-3 rounded-xl border border-gray-200 shadow-sm z-10">
+                                <div class="flex items-center gap-3 overflow-hidden">
+                                    <div class="p-2 bg-green-50 rounded-lg">
+                                        <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <span id="file-name" class="text-[13px] font-bold text-gray-700 truncate">document.pdf</span>
+                                </div>
+                                <button type="button" id="remove-file-btn" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            </div>
+                        </div>
+                    </div>
+            
+                    <!-- ปุ่ม Action -->
+                    <div class="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                        <button type="button" id="btn-cancel-format" class="px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">ยกเลิก</button>
+                        <button type="button" id="btn-save-format" class="px-6 py-2.5 text-sm font-bold text-white bg-[#213f8c] rounded-xl hover:bg-[#082570] transition-colors shadow-sm cursor-pointer flex items-center gap-2">
+                            บันทึกมาตรฐาน
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Section 4: Audit Logs ฉบับเต็ม (ซ่อนไว้ก่อน) -->
+        <div id="section-logs" class="hidden px-14">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-[#213f8c]">Audit Logs</h2>
+                    <p class="text-[13px] text-gray-500 font-medium mt-1">ประวัติการดำเนินการและการเปลี่ยนแปลงระบบ</p>
+                </div>
+                
+                <!-- กล่องเลือกวันที่ -->
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <div class="relative">
+                        <input type="date" id="log-date-filter" class="border border-gray-200 rounded-xl pl-4 pr-10 py-2 text-[13px] text-gray-600 focus:outline-none focus:border-[#213f8c] shadow-sm cursor-pointer bg-white w-full">
+                    </div>
+                    <button id="clear-log-filter" class="hidden px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-[13px] font-bold hover:bg-gray-200 transition-colors shadow-sm whitespace-nowrap cursor-pointer">
+                        ดูทั้งหมด
+                    </button>
+                </div>
+            </div>
+            
+            <div class="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#f9fafb] border-b border-gray-200 text-sm text-gray-500 font-medium">
+                            <th class="px-6 py-4 w-[20%]">วัน-เวลา</th>
+                            <th class="px-6 py-4 w-[20%]">ผู้ดำเนินการ</th>
+                            <th class="px-6 py-4 w-[45%]">การกระทำ</th>
+                            <th class="px-6 py-4 w-[15%] text-center">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-logs-full" class="text-sm text-gray-800"></tbody>
+                </table>
+
+                <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                    <p class="text-[13px] text-gray-500">แสดง <span id="logs-start"
+                            class="font-bold text-gray-700">0</span> ถึง <span id="logs-end"
+                            class="font-bold text-gray-700">0</span> จาก <span id="logs-total"
+                            class="font-bold text-gray-700">0</span> รายการ</p>
+                    <div class="flex gap-1" id="logs-pagination">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <script type="module" src="../js/dashboard-admin.js"></script>
+        <script type="module" src="../js/profile.js"></script>
 </body>
 
 </html>
