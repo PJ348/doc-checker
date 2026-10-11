@@ -1,6 +1,6 @@
 import { supabaseClient } from './supabase.js';
 document.addEventListener("DOMContentLoaded", async () => {
-
+  
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError || !session) {
         console.error("ไม่พบข้อมูลผู้ใช้งาน (ยังไม่ได้ล็อกอิน)");
@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // โหลดข้อมูลและสร้าง UI โปรไฟล์
     const loadAndRenderProfile = async () => {
-        // เพิ่มการดึง avatar_url มาด้วย
+        // 🌟 1. เพิ่มการดึง avatar_url มาด้วย
         const { data: userData, error: userError } = await supabaseClient
             .from('users')
             .select('first_name, last_name, avatar_url') // 👈 ดึงคอลัมน์รูปโปรไฟล์มาด้วย
@@ -57,27 +57,30 @@ document.addEventListener("DOMContentLoaded", async () => {
             <!-- Dropdown Menu -->
             <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-[320px] bg-white rounded-2xl shadow-xl border border-gray-200 z-50 p-5">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <!-- รูปโปรไฟล์ด้านใน Dropdown -->
+                    <div id="open-avatar-modal-btn" class="relative group w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer">
+                        ${profileDisplay}
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                            <span class="text-white text-xs">แก้ไข</span>
+                        </div>
                     </div>
                     
-                    <div class="flex-1 min-w-0 flex flex-col justify-center">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-sm font-bold text-gray-800 truncate flex-1" title="ภรณ์ทินรดา จันทร์เพ็ญ">ภรณ์ทินรดา จันทร์เพ็ญ</p>
-                            
-                            <!-- ปุ่มออกจากระบบ-->
-                            <button id="logout-btn" class="text-xs font-bold text-red-500 hover:text-red-700 shrink-0 cursor-pointer">
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">    
+                        <div class="flex items-center justify-between gap-2">                        
+                            <p class="text-[13px] font-bold text-gray-900 truncate">${displayName}</p>
+                            <button id="logout-btn" class="shrink-0 whitespace-nowrap text-[12px] text-[#c81e1e] hover:text-[#8b0000] transition-colors cursor-pointer focus:outline-none">
                                 ออกจากระบบ
                             </button>
-                        </div>
-                        
-                        <p class="text-[11px] text-gray-500 truncate mt-0.5" title="pornthinrada.janphen@gmail.com">pornthinrada.janphen@gmail.com</p>
+                        </div> 
+                        <p class="text-[12px] text-gray-500 truncate mt-0.5 truncate">${userEmail}</p>
+                
                     </div>
-                </div>
+                </div>  
             </div>
         `;
         injectModalHTML();
 
+        // 🌟 แก้ไขตรงนี้: ดันรูปล่าสุดเข้าไปใน Modal ทันที 🌟
         const previewImg = document.getElementById('avatar-preview');
         if (previewImg) {
             previewImg.src = currentAvatarUrl || defaultSvgDataUrl;
@@ -280,11 +283,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 saveBtn.innerText = "บันทึก";
                 modal.classList.add('hidden');
+                // loadAndRenderProfile();
                 window.location.reload();
 
             };
         }
     };
     loadAndRenderProfile();
+    // window.location.reload();
 });
 
