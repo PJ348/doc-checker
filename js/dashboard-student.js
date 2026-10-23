@@ -1,8 +1,14 @@
 import { supabaseClient } from './supabase.js';
+// ฟังก์ชันป้องกัน XSS
+const escapeHtml = (unsafe) => {
+    if (!unsafe) return "";
+    return unsafe.toString().replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+};
 // console.log("เริ่มรันไฟล์ Dashboard");
 document.addEventListener("DOMContentLoaded", async () => {
     const projectContainer = document.getElementById("project-container");
     const createBtn = document.getElementById("create-project-btn");
+    const statusFilter = document.getElementById("status-filter");
 
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
@@ -13,10 +19,122 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const userId = session.user.id;
+    // Role Guard: เช็กว่าเป็นนิสิต (role_id === 1) จริงหรือไม่
+    const { data: roleData } = await supabaseClient
+        .from('user_role')
+        .select('role_id')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    // ดึงข้อมูลจาก Supabase มาแสดงผล await supabaseClient
+    if (!roleData || roleData.role_id !== 1) {
+        alert("คุณไม่มีสิทธิ์เข้าถึงหน้าสำหรับนิสิต");
+        if (roleData?.role_id === 2) window.location.replace("./dashboard-teacher.html");
+        else if (roleData?.role_id === 3) window.location.replace("./dashboard-admin.html");
+        else window.location.replace("../index.html");
+        return;
+    }
+
+    // ดึงข้อมูลจาก Supabase มาแสดงผล await supabaseClient ทำโครงงานเป็นแถวๆ
+    let allProjects = [];
+    const renderProjects = () => {
+        const selectedStatus = statusFilter ? statusFilter.value : "all";
+
+        const filtered = allProjects.filter(project => {
+            if (selectedStatus === "all") return true;
+            return project.status === selectedStatus;
+        });
+
+        projectContainer.innerHTML = "";
+
+        if (filtered.length === 0) {
+            projectContainer.innerHTML = `
+                <div class="py-12 text-center text-sm text-gray-400">
+                    ไม่พบรายการโครงงาน${selectedStatus !== 'all' ? `ที่มีสถานะ "${selectedStatus}"` : ''}
+                </div>
+            `;
+            return;
+        }
+
+        filtered.forEach(project => {
+            const dateObj = project.created_at ? new Date(project.created_at) : new Date();
+            const dateStr = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear() + 543}`;
+
+            let statusColors = "bg-gray-100 text-gray-600";
+            if (project.status === "เสร็จสิ้น" || project.status === "ผ่าน") {
+                statusColors = "bg-[#dcfce7] text-[#16a34a]";
+            } else if (project.status === "กำลังดำเนิน") {
+                statusColors = "bg-blue-100 text-[#213f8c]";
+            } else if (project.status === "ต้องแก้ไข" || project.status === "ไม่ผ่าน") {
+                statusColors = "bg-red-100 text-red-600";
+            }
+
+            const isOwner = project.creator_id === userId;
+
+            // ปุ่มเมนู 3 จุดท้ายแถว (สำหรับเจ้าของโครงงาน)
+            const deleteButtonHTML = isOwner ? `
+                <button onclick="event.stopPropagation(); toggleDeletePopup('popup-${project.project_id}')" class="rounded-full w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-200/70 transition-all cursor-pointer" title="ตัวเลือกเพิ่มเติม">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
+                        <path d="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"/>
+                    </svg>
+                </button>
+                <div id="popup-${project.project_id}" onclick="event.stopPropagation()" class="hidden absolute top-12 right-4 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-gray-100 p-5 w-[250px] z-30">
+                    <div class="text-center mb-4">
+                        <h3 class="text-[14px] font-bold text-gray-800">คุณต้องการลบโครงงานหรือไม่ ?</h3>
+                    </div>
+                    <div class="flex gap-2.5">
+                        <button onclick="toggleDeletePopup('popup-${project.project_id}')" class="flex-1 py-1.5 bg-gray-100 text-gray-700 font-semibold text-xs rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">ยกเลิก</button>
+                        <button onclick="deleteProject('${project.project_id}')" class="flex-1 py-1.5 bg-[#c81e1e] text-white font-semibold text-xs rounded-lg hover:bg-[#a51515] transition-all cursor-pointer">ยืนยัน</button>
+                    </div>
+                </div>
+            ` : `<div class="w-8 h-8"></div>`;
+
+            const targetUrl = `./dashboard-project.html?id=${project.project_id}`;
+            const safeTitle = escapeHtml(project.thai_project_title);
+            const safeYear = escapeHtml(project.academic_year || "-");
+
+            const rowHTML = `
+                <div id="project-card-${project.project_id}" onclick="window.location.href='${targetUrl}'"  class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center px-4 md:px-5 py-2 bg-white hover:bg-blue-50/50 rounded-xl transition-colors cursor-pointer relative group">
+                    
+                    <!-- ไอคอนเอกสาร + ชื่อโครงงาน -->
+                    <div class="md:col-span-6 flex items-center gap-6 min-w-0" title="${safeTitle}">
+                        <div class="w-8.5 h-8.5 rounded-lg bg-blue-50 text-[#213f8c] flex items-center justify-center shrink-0 ">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <p title="${safeTitle}" class="text-[14px] text-gray-800 font-semibold truncate group-hover:text-[#213f8c] transition-colors">
+                            ${safeTitle}
+                        </p>
+                    </div>
+
+                    <!-- ปีการศึกษา -->
+                    <div class="md:col-span-2 flex md:justify-center items-center text-xs text-gray-500">
+                        <span class="md:hidden font-medium mr-1">ปีการศึกษา:</span> ${safeYear}
+                    </div>
+
+                    <!-- สถานะ -->
+                    <div class="md:col-span-2 flex md:justify-center items-center">
+                        <span class="px-3 py-1 ${statusColors} text-[11px] font-bold rounded-full">${escapeHtml(project.status)}</span>
+                    </div>
+
+                    <!-- วันที่เริ่ม + ปุ่มจุด 3 จุด -->
+                    <div class="md:col-span-2 flex items-center justify-between md:justify-end gap-2">
+                        <span class="text-xs text-gray-500 font-medium">${dateStr}</span>
+                        ${deleteButtonHTML}
+                    </div>
+                </div>
+            `;
+
+            projectContainer.insertAdjacentHTML("beforeend", rowHTML);
+        });
+    };
+
+    if (statusFilter) {
+        statusFilter.addEventListener("change", () => renderProjects());
+    }
+
+    // ดึงข้อมูลจาก Supabase มาเก็บและสั่งวาดแถว
     const loadProjects = async () => {
-
         const { data: responsibilities, error } = await supabaseClient
             .from('responsible_for')
             .select(`
@@ -29,9 +147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     creator_id
                 )
             `)
-            .eq('user_id', userId
-
-            );
+            .eq('user_id', userId);
 
         if (error) {
             console.error("ดึงข้อมูลล้มเหลว:", error.message);
@@ -39,72 +155,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        let projects = responsibilities.map(item => item.project).filter(p => p !== null);
-        projects.sort((a, b) => {
+        allProjects = responsibilities.map(item => item.project).filter(p => p !== null);
+        allProjects.sort((a, b) => {
             const aIsDone = a.status === "เสร็จสิ้น";
             const bIsDone = b.status === "เสร็จสิ้น";
-
-            if (aIsDone && !bIsDone) return 1;  // ถ้า a เสร็จแล้ว ให้ a โดนดันลงไปข้างล่าง b
-            if (!aIsDone && bIsDone) return -1; // ถ้า b เสร็จแล้ว ให้ b โดนดันลงไปข้างล่าง a
-
+            if (aIsDone && !bIsDone) return 1;
+            if (!aIsDone && bIsDone) return -1;
             return new Date(b.created_at || 0) - new Date(a.created_at || 0);
         });
 
-        // ล้างกล่องให้ว่างก่อนใส่ของใหม่
-        projectContainer.innerHTML = "";
-
-        // วนลูปข้อมูลสร้างเป็นการ์ดทีละใบ
-        projects.forEach(project => {
-            const dateObj = project.created_at ? new Date(project.created_at) : new Date();
-            const dateStr = `เริ่มโครงงาน: ${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear() + 543}`;
-
-            let statusColors = "bg-gray-100 text-gray-600"; // ค่าเริ่มต้น (สีเทา)
-            if (project.status === "เสร็จสิ้น" || project.status === "ผ่าน") {
-                statusColors = "bg-[#dcfce7] text-[#16a34a]"; // สีเขียว (เสร็จสิ้น)
-            } else if (project.status === "กำลังดำเนิน") {
-                statusColors = "bg-blue-100 text-[#213f8c]"; // สีน้ำเงิน (กำลังดำเนิน)
-            } else if (project.status === "ต้องแก้ไข" || project.status === "ไม่ผ่าน") {
-                statusColors = "bg-red-100 text-red-600"; // สีแดง (มีปัญหา)
-            }
-
-            const isOwner = project.creator_id === userId;
-
-            // โค้ดปุ่มลบ (สำหรับนิสิตที่เป็นเจ้าของ)
-            const deleteButtonHTML = isOwner ? `
-                <div class="absolute top-4 right-4">
-                    <button onclick="event.stopPropagation(); toggleDeletePopup('popup-${project.project_id}')" class="rounded-xl w-8 h-6 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#1f1f1f"><path d="M273.02-428q-21.54 0-36.66-15.34-15.13-15.34-15.13-36.87 0-21.54 15.34-36.66Q251.91-532 273.44-532q21.54 0 36.67 15.34 15.12 15.34 15.12 36.87 0 21.54-15.34 36.66Q294.56-428 273.02-428Zm206.77 0q-21.54 0-36.66-15.34Q428-458.68 428-480.21q0-21.54 15.34-36.66Q458.68-532 480.21-532q21.54 0 36.66 15.34Q532-501.32 532-479.79q0 21.54-15.34 36.66Q501.32-428 479.79-428Zm206.77 0q-21.54 0-36.67-15.34-15.12-15.34-15.12-36.87 0-21.54 15.34-36.66Q665.44-532 686.98-532t36.66 15.34q15.13 15.34 15.13 36.87 0 21.54-15.34 36.66Q708.09-428 686.56-428Z"/></svg>
-                    </button>
-                </div>
-                <div id="popup-${project.project_id}" onclick="event.stopPropagation()" class="hidden absolute top-11 right-4 bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] p-6 w-full max-w-[280px] z-10">
-                    <div class="text-center mb-6 mt-2">
-                        <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">คุณต้องการลบโครงงานหรือไม่ ?</h3>
-                    </div>
-                    <div class="flex gap-3">
-                        <button onclick="toggleDeletePopup('popup-${project.project_id}')" class="flex-1 py-2 bg-white text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">ยกเลิก</button>
-                        <button onclick="deleteProject('${project.project_id}')" class="flex-1 py-2 bg-[#c81e1e] text-white font-semibold text-sm rounded-xl hover:bg-[#a51515] transition-all cursor-pointer">ยืนยัน</button>
-                    </div>
-                </div>
-            ` : '';
-
-            const targetUrl = `./dashboard-project.html?id=${project.project_id}`;
-            const cardHTML = `
-                <div id="project-card-${project.project_id}" onclick="window.location.href='${targetUrl}'" class="bg-white rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] shadow-xl p-8 relative group border border-gray-50 hover:bg-gray-50 transition-all cursor-pointer min-h-[180px]">
-                    
-                    ${deleteButtonHTML}
-
-                    <div class="flex justify-between items-center mt-4 mb-6">
-                        <span class="text-[11px] text-gray-500 font-medium">${dateStr}</span>
-                        <span class="px-3 py-1 ${statusColors} text-[10px] font-bold rounded-full">${project.status}</span>
-                    </div>
-                    <p title="${project.thai_project_title}" class="text-[14px] text-gray-800 font-semibold leading-relaxed line-clamp-2 break-words">
-                        ${project.thai_project_title}
-                    </p>
-                </div>
-            `;
-
-            projectContainer.insertAdjacentHTML("beforeend", cardHTML);
-        });
+        renderProjects();
     };
 
     // สร้างโครงงานใหม่
@@ -117,6 +177,62 @@ document.addEventListener("DOMContentLoaded", async () => {
     closeBtn.addEventListener('click', () => { modal.classList.add('hidden'); form.reset(); });
     cancelBtn.addEventListener('click', () => { modal.classList.add('hidden'); form.reset(); });
 
+    // ดึง Element ของช่องรหัสวิชาและช่องชื่อโครงงาน
+    const joinCodeInput = document.getElementById('subject-join-code');
+    const subjectPreview = document.getElementById('subject-preview');
+    const subjectCodeError = document.getElementById('subject-code_error');
+    const thaiTitleInput = document.getElementById('thai-title');
+    const thaiTitleError = document.getElementById('thai-title_error');
+    let matchedSubject = null;
+
+    // พอเริ่มพิมพ์ชื่อโครงงาน ให้ข้อความสีแดงข้างๆ หายไปทันที
+    if (thaiTitleInput && thaiTitleError) {
+        thaiTitleInput.addEventListener('input', () => {
+            if (thaiTitleInput.value.trim() !== "") {
+                thaiTitleError.classList.add('hidden');
+            }
+        });
+    }
+
+    // พอเริ่มพิมพ์รหัสเข้าวิชา ให้ข้อความสีแดงข้างๆ หายไปทันที + ค้นหาวิชาอัตโนมัติ
+    if (joinCodeInput) {
+        joinCodeInput.addEventListener('input', async () => {
+            const code = joinCodeInput.value.trim().toLowerCase();
+            matchedSubject = null;
+
+            // ซ่อนตัวหนังสือสีแดงทันทีที่เริ่มพิมพ์
+            if (code !== "" && subjectCodeError) {
+                subjectCodeError.classList.add('hidden');
+            }
+
+            if (code.length < 3) {
+                if (subjectPreview) subjectPreview.classList.add('hidden');
+                return;
+            }
+
+            const { data: subj } = await supabaseClient
+                .from('subject')
+                .select(`subject_id, join_code, semester_year, subject_name, section, teacher_id, users ( first_name )`)
+                .ilike('join_code', code)
+                .maybeSingle();
+
+            if (subj) {
+                matchedSubject = subj;
+                if (subjectCodeError) subjectCodeError.classList.add('hidden');
+                if (subjectPreview) {
+                    const secLabel = subj.section ? ` ชั้น ${subj.section}` : '';
+                    // subjectPreview.innerText = `พบวิชา: [${subj.semester_year}] ${subj.subject_name}${secLabel} (อ.${subj.users?.first_name || 'ประจำวิชา'})`;
+                    subjectPreview.className = "text-xs text-[#16a34a] font-semibold mt-1.5";
+                }
+            } else {
+                if (subjectPreview) {
+                    // subjectPreview.innerText = `ไม่พบรหัสวิชา "${code}"`;
+                    subjectPreview.className = "text-xs text-red-500 font-semibold mt-1.5";
+                }
+            }
+        });
+    }
+    
     // เมื่อกดปุ่ม สร้างโครงงาน
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -137,50 +253,53 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         };
 
-        const userEmail = session.user.email;
+        const userEmail = session.user.email.toLowerCase();
 
+        const joinCodeVal = joinCodeInput ? joinCodeInput.value.trim().toLowerCase() : "";
         const thaiTitle = document.getElementById('thai-title').value.trim();
         const engTitle = document.getElementById('eng-title').value.trim();
-        const academicYear = document.getElementById('academic-year').value.trim();
-
-        const thaiTitleError = document.getElementById('thai-title_error');
-        const academicYearError = document.getElementById('academic-year_error');
-        const advisorEmailError = document.getElementById('advisor-email_error');
 
         const engTitleError = document.getElementById('eng-title_error');
-
-        const advisorEmailRaw = document.getElementById('advisor-email').value;
-        const advisorEmails = advisorEmailRaw
-            ? advisorEmailRaw.split(',').map(email => email.trim()).filter(email => email !== "" && email !== userEmail)
-            : [];
-        const teamEmailsRaw = document.getElementById('team-emails').value;
-        const teamEmails = teamEmailsRaw
-            ? teamEmailsRaw.split(',').map(email => email.trim()).filter(email => email !== "" && email !== userEmail)
-            : []; const teamEmailError = document.getElementById('team-email_error');
-
+        const teamEmailsRaw = document.getElementById('team-emails').value.toLowerCase();
+        const teamEmails = [...new Set(teamEmailsRaw.split(',').map(e => e.trim()).filter(e => e !== "" && e !== userEmail))];
+        const teamEmailError = document.getElementById('team-email_error');
 
         let isValid = true;
         const validateField = (value, errorEl, message) => {
             if (!value) {
-                errorEl.innerText = message;
-                errorEl.classList.remove('hidden');
+                if (errorEl) {
+                    errorEl.innerText = message;
+                    errorEl.classList.remove('hidden');
+                }
                 isValid = false;
-            } else {
+            } else if (errorEl) {
                 errorEl.classList.add('hidden');
             }
         };
 
         // ตรวจสอบฟิลด์ที่บังคับกรอก (ชื่อโครงงานภาษาไทย, ปีการศึกษา, อาจารย์ที่ปรึกษา)
+        validateField(joinCodeVal, subjectCodeError, "กรุณากรอกรหัสเข้าวิชา");
         validateField(thaiTitle, thaiTitleError, "กรุณากรอกชื่อโครงงาน");
-        validateField(academicYear, academicYearError, "กรุณากรอกปีการศึกษา");
 
-        // เช็คว่าต้องกรอกอาจารย์ที่ปรึกษาอย่างน้อย 1 คน
-        if (advisorEmails.length === 0) {
-            advisorEmailError.innerText = "กรุณากรอกอีเมลอาจารย์ที่ปรึกษา";
-            advisorEmailError.classList.remove('hidden');
-            isValid = false;
-        } else {
-            advisorEmailError.classList.add('hidden');
+        if (joinCodeVal) {
+            if (!matchedSubject || matchedSubject.join_code.toLowerCase() !== joinCodeVal) {
+                const { data: subjCheck } = await supabaseClient
+                    .from('subject')
+                    .select(`subject_id, join_code, semester_year, subject_name, section, teacher_id`)
+                    .ilike('join_code', joinCodeVal)
+                    .maybeSingle();
+
+                if (subjCheck) {
+                    matchedSubject = subjCheck;
+                    if (subjectCodeError) subjectCodeError.classList.add('hidden');
+                } else {
+                    if (subjectCodeError) {
+                        subjectCodeError.innerText = "ไม่พบรหัสวิชานี้ในระบบ";
+                        subjectCodeError.classList.remove('hidden');
+                    }
+                    isValid = false;
+                }
+            }
         }
 
         const thaiRegex = /[\u0E00-\u0E7F]/;
@@ -194,70 +313,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             engTitleError.classList.add('hidden');
         }
 
-
-        // ตรวจสอบรูปแบบอีเมล
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        // เช็กอีเมลอาจารย์
-        const isInvalidAdvisorEmail = advisorEmails.some(email => !emailRegex.test(email));
-        if (advisorEmails.length > 0 && isInvalidAdvisorEmail) {
-            advisorEmailError.innerText = "รูปแบบอีเมลอาจารย์ไม่ถูกต้อง";
-            advisorEmailError.classList.remove('hidden');
-            isValid = false;
-        }
-
         // เช็กอีเมลสมาชิกในทีม (นิสิต)
         const isInvalidTeamEmail = teamEmails.some(email => !emailRegex.test(email));
         if (teamEmails.length > 0 && isInvalidTeamEmail) {
             teamEmailError.innerText = "รูปแบบอีเมลสมาชิกในทีมไม่ถูกต้อง";
             teamEmailError.classList.remove('hidden');
             isValid = false;
+        } else {
+            teamEmailError.classList.add('hidden');
         }
 
         if (!isValid) {
             resetSubmitButton();
             return;
-        }
-
-        if (advisorEmails.length > 0) {
-            // ดึง email จาก users และดึง role จาก user_role
-            const { data: advisorUsers, error: advError } = await supabaseClient
-                .from('users')
-                .select(`
-                    email,
-                    user_role ( role_id ) 
-                `)
-                .in('email', advisorEmails);
-
-            if (advError) {
-                console.error("ตรวจสอบอีเมลอาจารย์ล้มเหลว:", advError.message);
-                alert("เกิดข้อผิดพลาดในการตรวจสอบระบบ");
-                resetSubmitButton();
-                return;
-            }
-
-            if (advisorUsers.length < advisorEmails.length) {
-                advisorEmailError.innerText = "ไม่พบอีเมลอาจารย์บางท่านในระบบ (ยังไม่สมัครสมาชิก)";
-                advisorEmailError.classList.remove('hidden');
-                resetSubmitButton();
-                return;
-            }
-
-            // เช็คว่า role ในตาราง user_role เป็น 'teacher' 
-            const hasInvalidTeacherRole = advisorUsers.some(u => {
-                const roleIds = Array.isArray(u.user_role)
-                    ? u.user_role.map(r => r.role_id)
-                    : [u.user_role?.role_id];
-
-                return !roleIds.includes(2); // 2 คือ role_id ของอาจารย์
-            });
-
-            if (hasInvalidTeacherRole) {
-                advisorEmailError.innerText = "อีเมลที่ระบุไม่ใช่บัญชีอาจารย์ กรุณาตรวจสอบอีกครั้ง";
-                advisorEmailError.classList.remove('hidden');
-                resetSubmitButton();
-                return;
-            }
         }
 
         if (teamEmails.length > 0) {
@@ -304,7 +372,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             .insert([{
                 thai_project_title: thaiTitle,
                 english_project_title: engTitle,
-                academic_year: academicYear,
+                academic_year: matchedSubject.semester_year,
+                subject_id: matchedSubject.subject_id,
                 status: "กำลังดำเนิน",
                 creator_id: userId
             }])
@@ -318,40 +387,41 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         const projectId = newProject[0].project_id;
 
-        // รวบรวมอีเมลทั้งหมดที่ต้องดึงเข้าโครงงาน (เพื่อน + อาจารย์)
-        const allEmails = [...teamEmails, ...advisorEmails];
         let responsibilityData = [
             { user_id: userId, project_id: projectId }
         ];
 
+        if (matchedSubject.teacher_id && matchedSubject.teacher_id !== userId) {
+            responsibilityData.push({ user_id: matchedSubject.teacher_id, project_id: projectId });
+        }
+
         const notFoundEmail = document.getElementById('some-email-notfound');
-        // ค้นหา user_id ของเพื่อนและอาจารย์จากตาราง users
-        if (allEmails.length > 0) {
+        if (teamEmails.length > 0) {
             const { data: foundUsers, error: userError } = await supabaseClient
                 .from('users')
                 .select('user_id, email')
-                .in('email', allEmails);
+                .in('email', teamEmails);
 
             if (userError) {
                 await supabaseClient.from('project').delete().eq('project_id', projectId);
-                console.log("ตรวจสอบข้อมูลสมาชิกขัดข้อง: " + userError.message);
                 resetSubmitButton();
                 return;
             }
 
             if (foundUsers) {
                 foundUsers.forEach(user => {
-                    responsibilityData.push({ user_id: user.user_id, project_id: projectId });
+                    if (user.user_id !== userId && user.user_id !== matchedSubject.teacher_id) {
+                        responsibilityData.push({ user_id: user.user_id, project_id: projectId });
+                    }
                 });
 
-                if (foundUsers.length < allEmails.length) {
+                if (foundUsers.length < teamEmails.length) {
                     if (notFoundEmail) notFoundEmail.classList.remove('hidden');
                 }
             }
         }
 
-        // บันทึกทุกคนลงตาราง responsible_for 
-        const { data: respData, error: respError } = await supabaseClient
+        const { error: respError } = await supabaseClient
             .from('responsible_for')
             .insert(responsibilityData)
             .select();
@@ -359,13 +429,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (respError) {
             await supabaseClient.from('project').delete().eq('project_id', projectId);
             console.log("บันทึกสมาชิกทีมล้มเหลว:", respError.message);
-            alert("บันทึกสมาชิกทีมล้มเหลว: ");
+            alert("บันทึกสมาชิกทีมล้มเหลว");
             resetSubmitButton();
             return;
         }
 
         modal.classList.add('hidden');
         form.reset();
+        matchedSubject = null;
+        if (subjectPreview) subjectPreview.classList.add('hidden');
         resetSubmitButton();
         loadProjects();
     });
@@ -378,6 +450,11 @@ let currentOpenPopupId = null;
 window.toggleDeletePopup = function (popupId, event) {
     if (event) {
         event.stopPropagation();
+    }
+
+    if (currentOpenPopupId && currentOpenPopupId !== popupId) {
+        const oldPopup = document.getElementById(currentOpenPopupId);
+        if (oldPopup) oldPopup.classList.add('hidden');
     }
 
     const popup = document.getElementById(popupId);
@@ -406,6 +483,7 @@ window.addEventListener('click', (e) => {
     }
 });
 
+
 // ดึงตัวแปรกล่องสร้างโครงงาน (ใส่ ID ของกล่องคุณตรงนี้)
 const projectModal = document.getElementById('project-modal');
 if (projectModal) {
@@ -421,6 +499,28 @@ window.deleteProject = async function (projectId) {
     if (!confirm("ยืนยันการลบโครงงานนี้อย่างถาวร?")) return;
 
     try {
+        // หาชื่อไฟล์ทั้งหมดของโครงงานนี้เพื่อนำไปลบออกจาก Storage
+        const { data: submissions, error: fetchError } = await supabaseClient
+            .from('document_submission')
+            .select('file_link')
+            .eq('project_id', projectId);
+
+        if (fetchError) throw fetchError;
+
+        // สั่งลบไฟล์ออกจาก Bucket 'student_submissions'
+        if (submissions && submissions.length > 0) {
+            const filesToDelete = submissions
+                .filter(sub => sub.file_link)
+                .map(sub => {
+                    const parts = sub.file_link.split('/');
+                    return decodeURIComponent(parts[parts.length - 1].split('?')[0]);
+                });
+
+            if (filesToDelete.length > 0) {
+                await supabaseClient.storage.from('student_submissions').remove(filesToDelete);
+            }
+        }
+
         // เรียกใช้ Function จาก Supabase เพื่อลบทั้งแม่และลูกในครั้งเดียว
         const { error: funcError } = await supabaseClient.rpc('delete_project_completely', {
             p_project_id: projectId

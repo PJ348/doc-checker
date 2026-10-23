@@ -44,12 +44,45 @@
 
         <!-- Projects Section -->
         <div class="px-8 md:px-16 pb-16">
-            <h2 class="text-xl font-bold text-gray-900 mb-6">โครงงานของฉัน</h2>
+            
+            <!-- แถบหัวตารางด้านบน -->
+            <div class="grid grid-cols-12 gap-4 items-center px-4 md:px-5 py-3 text-[13px] font-semibold text-gray-600 border-b border-gray-200/80 mb-2">
+                
+                <!-- คอลัมน์ชื่อโครงงาน -->
+                <div class="col-span-5 md:col-span-6 text-gray-800 text-[15px] font-bold">
+                    โครงงานของฉัน
+                </div>
 
-            <!-- Grid Container -->
-            <div id="project-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- คอลัมน์ปีการศึกษา -->
+                <div class="hidden md:flex md:col-span-2 justify-center text-gray-500 font-medium">
+                    ปีการศึกษา
+                </div>
+
+                <!-- คอลัมน์ตัวกรองสถานะ -->
+                <div class="col-span-4 md:col-span-2 flex justify-center">
+                    <div class="relative inline-flex items-center">
+                        <select id="status-filter" class="appearance-none bg-transparent hover:bg-gray-100 px-3 py-1.5 pr-7 rounded-lg text-[13px] font-medium text-gray-600 focus:outline-none cursor-pointer transition-colors">
+                            <option value="all">สถานะทั้งหมด</option>
+                            <option value="กำลังดำเนิน">กำลังดำเนิน</option>
+                            <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                        </select>
+                        <svg class="w-3.5 h-3.5 text-gray-500 absolute right-2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- คอลัมน์วันที่เริ่มโครงงาน -->
+                <div class="col-span-3 md:col-span-2 flex justify-end pr-9">
+                    <span class="hidden sm:inline text-gray-500 font-medium">วันที่เริ่มโครงงาน</span>
+                </div>
+            </div>
+
+            <!-- พื้นที่แสดงรายการแถวโครงงาน -->
+            <div id="project-container" class="flex flex-col divide-y divide-gray-100">
             </div>
         </div>
+        
     </div>
     <div id="project-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
         <div class="w-full max-w-[540px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
@@ -81,6 +114,18 @@
                 <form id="create-project-form" class="flex flex-col gap-5">
 
                     <div>
+                        <label class="block text-[14px] text-gray-700 font-medium mb-2">
+                            รหัสเข้าวิชา (จากอาจารย์) <span class="text-red-500">*</span>
+                            <span id="subject-code_error" class="text-red-500 text-xs mt-1 hidden">ไม่พบรหัสวิชานี้ในระบบ</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="subject-join-code" placeholder="เช่น si0001"
+                                class="w-full text-[12px] border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282] transition-all">
+                        </div>
+                        <p id="subject-preview" class="text-xs text-[#213f8c] font-semibold mt-1 hidden"></p>
+                    </div>
+
+                    <div>
                         <label class="block text-[14px] text-gray-700 font-medium mb-2">ชื่อโครงงาน (ภาษาไทย) <span
                                 class="text-red-500">*</span> <span id="thai-title_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกชื่อโครงงาน</span></label>
                         <input type="text" id="thai-title" placeholder="เช่น การพัฒนาระบบตรวจสอบรูปแบบเอกสารด้วย AI"
@@ -93,23 +138,6 @@
                         <input type="text" id="eng-title"
                             placeholder="e.g., Development of AI Document Format Checker System"
                             class="w-full text-[12px] border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282] focus:border-transparent transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-[14px] text-gray-700 font-medium mb-2">ปีการศึกษา (พ.ศ.) <span
-                                class="text-red-500">*</span> <span id="academic-year_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกปีการศึกษา</span></label>
-                        <input type="text" id="academic-year"
-                            placeholder="เช่น 2569"
-                            class="w-full text-[12px] border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282] focus:border-transparent transition-all"
-                            >
-                    </div> 
-
-                    <div>
-                        <label class="block text-[14px] text-gray-700 font-medium mb-2">อาจารย์ที่ปรึกษา (อีเมล) <span
-                                class="text-red-500">*</span> <span id="advisor-email_error" class="text-red-500 text-xs mt-1 hidden">กรุณากรอกอีเมลอาจารย์ที่ปรึกษา</span></label>
-                        <input type="text" id="advisor-email" placeholder="เช่น teacher@university.ac.th"
-                            class="w-full text-[12px] border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282] focus:border-transparent transition-all">
-                            <p class="text-xs text-gray-400 mt-1">* หากมีหลายคน ให้พิมพ์ลูกน้ำ (,) คั่นระหว่างอีเมล</p>
                     </div>
 
                     <div>

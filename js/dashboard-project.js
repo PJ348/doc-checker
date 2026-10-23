@@ -1,5 +1,17 @@
 import { supabaseClient } from './supabase.js';
 
+// ฟังก์ชันป้องกัน XSS
+const escapeHtml = (unsafe) => {
+    if (!unsafe) return "";
+    return unsafe
+        .toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
+
 let currentSubmissionId = null;
 window.togglePopup = function (popupID) {
     const popups = ['details-popup', 'members-popup'];
@@ -194,6 +206,15 @@ window.switchFeedbackTab = function (tabName) {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // ตรวจสอบ Session และ Guard (1.2 Guard)
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !authData?.user) {
+        alert("กรุณาเข้าสู่ระบบ");
+        window.location.replace('../index.html');
+        return;
+    }
+    const currentUserId = authData.user.id;
+
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('id');
 
@@ -229,36 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateElement('detail-year', `ปีการศึกษา: ${projectData.academic_year || "-"}`);
     updateElement('detail-created_at', `เริ่มโครงงาน: ${dateStr}`);
 
-    if (projectData.status === 'เสร็จสิ้น') {
-        const uploadBtn = document.getElementById('upload-btn');
-        if (uploadBtn) {
-            const uploadContainer = uploadBtn.closest('.absolute.bottom-4');
-            if (uploadContainer) {
-                uploadContainer.innerHTML = `
-                    <div class="bg-green-100 border border-green-200 text-green-700 px-6 py-2.5 rounded-full font-bold shadow-lg pointer-events-auto text-[13px] flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                        โครงงานนี้ได้รับการอนุมัติเสร็จสิ้นแล้ว
-                    </div>
-                `;
-            }
-        }
-        const statusSelect = document.getElementById('doc-status-select');
-        const commentInput = document.getElementById('teacher-comment');
-        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
-
-        if (statusSelect) statusSelect.disabled = true; // ล็อก Dropdown
-        if (commentInput) {
-            commentInput.disabled = true; // ล็อกกล่องพิมพ์
-            commentInput.placeholder = "โครงงานนี้ถูกปิดแล้ว ไม่สามารถประเมินเพิ่มเติมได้";
-        }
-        if (submitFeedbackBtn) {
-            submitFeedbackBtn.disabled = true; // ล็อกปุ่มเซฟ
-            submitFeedbackBtn.innerText = "ปิดการประเมิน";
-            submitFeedbackBtn.className = "bg-gray-200 text-gray-400 w-full py-2.5 rounded-xl text-[14px] font-bold cursor-not-allowed";
-        }
-    }
+    await updateUploadLockState(projectId, projectData.status);
 
     const { data: membersData, error: membersError } = await supabaseClient
         .from('responsible_for')
@@ -284,53 +276,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (!membersData || membersData.length === 0) {
-        membersContainer.innerHTML = `...`;
-        return;
-    }
-
-
-    if (!membersData || membersData.length === 0) {
         membersContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีสมาชิกในโครงงานนี้</p>`;
-        return;
-    }
+        // return;
+    } else {
+        membersData.forEach(member => {
+            // ใช้ escapeHtml ป้องกัน XSS
+            const firstName = escapeHtml(member.users?.first_name || "ไม่ทราบชื่อ");
+            const lastName = escapeHtml(member.users?.last_name || "");
+            const email = escapeHtml(member.users?.email || "-");
 
-    const { data: authData } = await supabaseClient.auth.getUser();
-    const currentUserId = authData?.user?.id;
-    membersData.forEach(member => {
-        const firstName = member.users?.first_name || "ไม่ทราบชื่อ";
-        const lastName = member.users?.last_name || "";
-        const email = member.users?.email || "-";
+            const roleData = member.users?.user_role;
+            const roleId = Array.isArray(roleData) ? roleData[0]?.role_id : roleData?.role_id;
 
-        const roleData = member.users?.user_role;
-        const roleId = Array.isArray(roleData) ? roleData[0]?.role_id : roleData?.role_id;
+            let roleText = "นิสิต";
+            if (roleId === 2) {
+                roleText = "อาจารย์";
+            } else if (roleId === 1) {
+                roleText = "นิสิต";
+            }
 
-        let roleText = "นิสิต";
-        if (roleId === 2) {
-            roleText = "อาจารย์";
-        } else if (roleId === 1) {
-            roleText = "นิสิต";
-        }
+            if (member.user_id === currentUserId) {
+                roleText += " (คุณ)";
+            }
 
-        if (member.user_id === currentUserId) {
-            roleText += " (คุณ)";
-        }
+            const isCreator = member.user_id === projectData.creator_id;
+            if (isCreator) {
+                roleText += " (เจ้าของ)";
+            }
 
-        const isCreator = member.user_id === projectData.creator_id;
-        if (isCreator) {
-            roleText += " (เจ้าของ)";
-        }
-
-        // เช็ครูปโปรไฟล์
-        const avatarUrl = member.users?.avatar_url;
-        const avatarHTML = avatarUrl
-            ? `<img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover shrink-0">`
-            : `<div class="w-8 h-8 bg-[#93c5fd] text-[#1e3a8a] rounded-full flex items-center justify-center shrink-0">
+            // เช็ครูปโปรไฟล์
+            const avatarUrl = member.users?.avatar_url;
+            const avatarHTML = avatarUrl
+                ? `<img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover shrink-0">`
+                : `<div class="w-8 h-8 bg-[#93c5fd] text-[#1e3a8a] rounded-full flex items-center justify-center shrink-0">
                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" /></svg>
                </div>`;
 
-        const actionMenuHTML = isCreator ?
-            `<span class="text-xs font-medium text-gray-800 pr-2">${roleText}</span>`
-            : `
+            const actionMenuHTML = isCreator ?
+                `<span class="text-xs font-medium text-gray-800 pr-2">${roleText}</span>`
+                : `
             <div class="relative">
                 <div onclick="toggleMemberMenu(event, this)" class="flex items-center gap-1 cursor-pointer select-none py-1 px-2 rounded hover:bg-gray-50">
                     <span class="text-xs text-gray-800 font-medium pr-1">${roleText}</span>
@@ -341,7 +325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </div>
             </div>`;
 
-        const memberHTML = `
+            const memberHTML = `
             <div class="flex items-center justify-between relative mb-3">
                 <div class="flex items-center gap-3">
                     ${avatarHTML}
@@ -353,9 +337,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ${actionMenuHTML}
             </div>
         `;
-        membersContainer.insertAdjacentHTML('beforeend', memberHTML);
-
-    });
+            membersContainer.insertAdjacentHTML('beforeend', memberHTML);
+        });
+    }
 
     // ปุ่มเพิ่มสมาชิก
     const addBtn = document.getElementById("add-btn");
@@ -385,9 +369,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            const emailRaw = emailInput.value;
-            const emails = emailRaw ? emailRaw.split(',').map(email => email.trim()).filter(email => email !== "") : [];
-
+            const emailRaw = emailInput.value.toLowerCase();
+            const emails = [...new Set(emailRaw.split(',').map(email => email.trim()).filter(email => email !== ""))]; // ตัดอีเมลซ้ำ
             if (emails.length === 0) {
                 return;
             }
@@ -488,7 +471,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // ส่วนจัดการปุ่ม "บันทึกผลประเมิน" (ของอาจารย์)
-    // ส่วนจัดการปุ่ม "บันทึกผลประเมิน" (ของอาจารย์)
     const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
 
     if (submitFeedbackBtn) {
@@ -560,8 +542,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             const currentProjectId = new URLSearchParams(window.location.search).get('id');
-            await loadSubmissionHistory(currentProjectId);
-
+            await loadSubmissionHistory(currentProjectId, currentSubmissionId);
             if (typeof loadTeacherFeedback === 'function') {
                 await loadTeacherFeedback(currentSubmissionId);
             }
@@ -649,25 +630,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ฟังก์ชันจัดการ ประวัติ, PDF, AI
 // โหลดประวัติการส่ง
-async function loadSubmissionHistory(projectId) {
-    const listContainer = document.getElementById('version-list-container');
+async function loadSubmissionHistory(projectId, retainSubmissionId = null) {
+   const listContainer = document.getElementById('version-list-container');
     if (!listContainer) return;
 
-    const { data: submissions, error } = await supabaseClient
+    // เช็กว่าเป็นหน้าอาจารย์หรือไม่ (ดูจากปุ่ม approve-project-btn หรือ submit-feedback-btn)
+    const approveBtn = document.getElementById('approve-project-btn');
+    const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+    const isTeacherView = !!(approveBtn || submitFeedbackBtn);
+
+    let query = supabaseClient
         .from('document_submission')
         .select(`
             submission_id,
             submission_number,
             submission_time,
             processing_status,
+            is_draft,
             file_link,
             users ( email, first_name, last_name ),
             document_format ( document_name )
         `)
         .eq('project_id', projectId)
-        .order('submission_number', { ascending: false });
+        .order('submission_time', { ascending: false }); 
 
-    const approveBtn = document.getElementById('approve-project-btn');
+    const { data: rawSubmissions, error } = await query;
+    // ถ้าเป็นฝั่งอาจารย์ ให้กรองเอาฉบับร่าง (is_draft === true หรือ submission_number === 0 หรือสถานะ 'ฉบับร่าง') ออกทั้งหมด
+    const submissions = isTeacherView
+        ? (rawSubmissions || []).filter(s => !s.is_draft && s.submission_number > 0 && s.processing_status !== 'ฉบับร่าง')
+        : (rawSubmissions || []);
+
+    // อัปเดตสถานะการล็อกกล่องอัปโหลดของนิสิตให้เป็นปัจจุบันเสมอ
+    await updateUploadLockState(projectId);
+
     if (approveBtn) {
         approveBtn.classList.remove('hidden');
         const { data: projData } = await supabaseClient
@@ -676,20 +671,19 @@ async function loadSubmissionHistory(projectId) {
             .eq('project_id', projectId)
             .single();
 
+        const officialSubs = (rawSubmissions || []).filter(s => !s.is_draft && s.submission_number > 0 && s.processing_status !== 'ฉบับร่าง');
+
         if (projData && projData.status === "เสร็จสิ้น") {
-            // 1. ถ้าโครงงานเสร็จแล้ว -> เปลี่ยนเป็นป้ายสีเขียว กดไม่ได้
             approveBtn.disabled = true;
             approveBtn.innerText = "อนุมัติโครงงานแล้ว";
             approveBtn.className = "bg-[#dcfce7] text-[#16a34a] px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed";
             approveBtn.title = "";
-        } else if (!submissions || submissions.length === 0 || submissions[0].processing_status !== "ผ่าน") {
-            // 2. ถ้าเอกสารยังไม่ผ่าน -> ปุ่มสีเทา กดไม่ได้
+        } else if (officialSubs.length === 0 || officialSubs[0].processing_status !== "ผ่าน") {
             approveBtn.disabled = true;
             approveBtn.innerText = "อนุมัติโครงงาน";
             approveBtn.className = "bg-gray-200 text-gray-400 px-5 py-2 rounded-xl text-[13px] font-bold cursor-not-allowed transition-colors";
             approveBtn.title = "เอกสารเวอร์ชันล่าสุดต้องผ่านการประเมินก่อน";
         } else {
-            // 3. ถ้าเอกสารผ่านแล้ว พร้อมอนุมัติ -> ปุ่มสีน้ำเงิน กดได้
             approveBtn.disabled = false;
             approveBtn.innerText = "อนุมัติโครงงาน";
             approveBtn.className = "bg-[#213f8c] text-white px-5 py-2 rounded-xl text-[13px] font-bold hover:bg-[#1a3270] shadow-md transition-colors cursor-pointer";
@@ -704,21 +698,31 @@ async function loadSubmissionHistory(projectId) {
 
     listContainer.innerHTML = submissions.map((sub, index) => {
         const isLatest = index === 0;
-        const isPass = sub.processing_status === "ผ่าน";
         const dateStr = new Date(sub.submission_time).toLocaleDateString('th-TH');
-        // แยกตัวแปรชื่อ และ อีเมล
-        const fName = sub.users?.first_name || '';
-        const lName = sub.users?.last_name || '';
+
+        const fName = escapeHtml(sub.users?.first_name || '');
+        const lName = escapeHtml(sub.users?.last_name || '');
         const fullName = (fName || lName) ? `${fName} ${lName}`.trim() : 'ไม่ระบุชื่อ';
-        const formatName = sub.document_format?.document_name || sub.document_format?.format_name || 'ไม่ระบุมาตรฐาน';
+        const formatName = escapeHtml(sub.document_format?.document_name || sub.document_format?.format_name || 'ไม่ระบุมาตรฐาน');
+        const processingStatus = escapeHtml(sub.processing_status || 'รอดำเนินการ');
+
+        const isDraft = sub.is_draft === true || sub.submission_number === 0 || processingStatus === 'ฉบับร่าง';
+        let statusClass = 'text-yellow-600 bg-yellow-50'; // ค่าเริ่มต้นเป็นสีเหลืองสำหรับ "รอดำเนินการ"
+        if (isDraft) {
+            statusClass = 'text-gray-600 bg-gray-100';
+        } else if (processingStatus === "ผ่าน") {
+            statusClass = 'text-green-600 bg-green-100';
+        } else if (processingStatus === "ต้องแก้ไข" || processingStatus === "ไม่ผ่าน") {
+            statusClass = 'text-red-500 bg-red-100';
+        }
 
         return `
             <div onclick="selectVersion('${sub.submission_id}', '${sub.file_link}', '${fullName}', '${formatName}', '${sub.submission_time}', this)" 
                 class="version-card ${isLatest ? 'bg-gray-100' : ''} hover:bg-gray-50 rounded-2xl p-4 cursor-pointer border-transparent transition-colors">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="font-bold text-gray-800">v${sub.submission_number}</span>
-                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${isPass ? 'text-green-600 bg-green-100' : 'text-red-500 bg-red-100'}">
-                        ${sub.processing_status || 'รอดำเนินการ'}
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${statusClass}">
+                        ${processingStatus}
                     </span>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">${dateStr}</p>
@@ -728,14 +732,90 @@ async function loadSubmissionHistory(projectId) {
 
     // โหลดเวอร์ชันล่าสุดเมื่อเปิดหน้าเว็บ
     if (submissions.length > 0) {
-        const latest = submissions[0];
-        const fName = latest.users?.first_name || '';
-        const lName = latest.users?.last_name || '';
+        let targetSub = submissions[0]; // ค่าเริ่มต้นคือตัวล่าสุด
+        let targetElement = null;
+
+        if (retainSubmissionId) {
+            const found = submissions.find(s => s.submission_id == retainSubmissionId);
+            if (found) targetSub = found;
+        }
+
+        const fName = escapeHtml(targetSub.users?.first_name || '');
+        const lName = escapeHtml(targetSub.users?.last_name || '');
         const latestFullName = (fName || lName) ? `${fName} ${lName}`.trim() : 'ไม่ระบุชื่อ';
-        const latestFormat = latest.document_format?.document_name || latest.document_format?.format_name || 'ไม่ระบุมาตรฐาน';
+        const latestFormat = escapeHtml(targetSub.document_format?.document_name || targetSub.document_format?.format_name || 'ไม่ระบุมาตรฐาน');
 
         // แยกส่ง fullName และ email เข้าไปใน selectVersion
-        selectVersion(latest.submission_id, latest.file_link, latestFullName, latestFormat, latest.submission_time, null);
+        targetElement = Array.from(document.querySelectorAll('.version-card')).find(el => el.getAttribute('onclick')?.includes(`'${targetSub.submission_id}'`));
+        selectVersion(targetSub.submission_id, targetSub.file_link, latestFullName, latestFormat, targetSub.submission_time, targetElement);
+    }
+}
+
+async function updateUploadLockState(projectId, projectStatus = null) {
+    // ถ้าไม่ได้ส่ง projectStatus มา ให้ดึงใหม่จากฐานข้อมูล
+    if (!projectStatus) {
+        const { data: proj } = await supabaseClient
+            .from('project')
+            .select('status')
+            .eq('project_id', projectId)
+            .maybeSingle();
+        projectStatus = proj?.status;
+    }
+
+    const isProjectDone = projectStatus === "เสร็จสิ้น";
+
+    // ดึงเฉพาะเอกสารที่ส่งให้อาจารย์จริง (submission_number > 0 และไม่ใช่ฉบับร่าง) ตัวล่าสุด
+    const { data: latestOfficialSub } = await supabaseClient
+        .from('document_submission')
+        .select('processing_status, submission_number')
+        .eq('project_id', projectId)
+        .gt('submission_number', 0)
+        .neq('processing_status', 'ฉบับร่าง')
+        .order('submission_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    const isLatestPassed = latestOfficialSub && latestOfficialSub.processing_status === "ผ่าน";
+
+    const uploadContainer = document.getElementById('upload-container');
+    const lockedWarning = document.getElementById('locked-warning');
+
+    if (uploadContainer && lockedWarning) {
+        if (isProjectDone) {
+            // ขั้นที่ 2: โครงงานอนุมัติเสร็จสิ้นแล้ว -> โชว์ป้ายสีเขียว (กล่องอัปโหลดซ่อนอยู่แล้ว)
+            uploadContainer.classList.add('hidden');
+            lockedWarning.classList.remove('hidden');
+            lockedWarning.className = "bg-green-100 border border-green-300 text-green-800 px-5 py-2.5 rounded-full text-xs md:text-sm font-bold shadow-md pointer-events-auto flex items-center gap-2";
+            lockedWarning.innerHTML = `โครงงานนี้ได้รับการอนุมัติจากอาจารย์แล้ว`;
+        } else if (isLatestPassed) {
+            // ขั้นที่ 1: เอกสารล่าสุด "ผ่าน" แล้ว -> โชว์ป้ายสีฟ้า (กล่องอัปโหลดซ่อนอยู่แล้ว)
+            uploadContainer.classList.add('hidden');
+            lockedWarning.classList.remove('hidden');
+            lockedWarning.className = "bg-blue-50 border border-blue-200 text-[#213f8c] px-5 py-2.5 rounded-full text-xs md:text-sm font-bold shadow-md pointer-events-auto flex items-center gap-2";
+            lockedWarning.innerHTML = `เอกสารเวอร์ชันล่าสุดประเมินผ่านแล้ว (กรุณารออาจารย์กดอนุมัติ)`;
+        } else {
+            // ยังไม่ผ่าน -> เปิดกล่องอัปโหลดขึ้นมาให้ใช้งานได้ตามปกติ
+            lockedWarning.classList.add('hidden');
+            uploadContainer.classList.remove('hidden');
+        }
+    }
+
+    // ล็อกกล่องประเมินของอาจารย์เมื่อโครงงานเสร็จสิ้นแล้ว
+    if (isProjectDone) {
+        const statusSelect = document.getElementById('doc-status-select');
+        const commentInput = document.getElementById('teacher-comment');
+        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+
+        if (statusSelect) statusSelect.disabled = true;
+        if (commentInput) {
+            commentInput.disabled = true;
+            commentInput.placeholder = "โครงงานนี้ถูกปิดแล้ว ไม่สามารถประเมินเพิ่มเติมได้";
+        }
+        if (submitFeedbackBtn) {
+            submitFeedbackBtn.disabled = true;
+            submitFeedbackBtn.innerText = "ปิดการประเมิน";
+            submitFeedbackBtn.className = "bg-gray-200 text-gray-400 w-full py-2.5 rounded-xl text-[14px] font-bold cursor-not-allowed";
+        }
     }
 }
 
@@ -804,6 +884,49 @@ async function loadAIInspection(submissionId) {
         return;
     }
 
+    if (inspection) {
+        const baseClasses = "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold border";
+
+        // ส่วนแสดงผลความมั่นใจและความรุนแรง
+        if (metricsContainer && (inspection.ai_confidence != null || inspection.severity != null)) {
+            const confBadge = document.getElementById('confidence-badge');
+            const sevBadge = document.getElementById('severity-badge');
+
+            if (confBadge && inspection.ai_confidence != null) {
+                confBadge.innerText = `ความมั่นใจ ${inspection.ai_confidence}%`;
+                confBadge.className = `${baseClasses} border-blue-200 bg-blue-50 text-blue-700`;
+            }
+            if (sevBadge && inspection.severity != null) {
+                const sev = inspection.severity.trim();
+                sevBadge.innerText = `ความเสี่ยง: ${sev}`;
+
+                if (sev === 'สูง') {
+                    sevBadge.className = `${baseClasses} border-red-200 bg-red-50 text-red-600`;
+                } else if (sev === 'ปานกลาง') {
+                    sevBadge.className = `${baseClasses} border-orange-200 bg-orange-50 text-orange-700`;
+                } else if (sev === 'ต่ำ') {
+                    sevBadge.className = `${baseClasses} border-amber-200 bg-amber-50 text-amber-700`;
+                } else {
+                    sevBadge.className = `${baseClasses} border-green-200 bg-green-50 text-green-700`;
+                }
+            }
+            metricsContainer.classList.remove('hidden');
+        }
+
+        // ส่วนแสดงผล ผ่าน / ไม่ผ่าน
+        if (statusBadge && inspection.is_passed != null) {
+            const isPass = inspection.is_passed === true;
+            statusBadge.innerText = isPass ? 'ผ่าน' : 'ไม่ผ่าน';
+            statusBadge.classList.remove('hidden');
+
+            if (isPass) {
+                statusBadge.className = `${baseClasses} border-green-200 bg-green-50 text-green-700`;
+            } else {
+                statusBadge.className = `${baseClasses} border-red-200 bg-red-50 text-red-600`;
+            }
+        }
+    }
+
     const { data: results } = await supabaseClient
         .from('ai_inspection_result')
         .select('*')
@@ -814,35 +937,6 @@ async function loadAIInspection(submissionId) {
         return;
     }
 
-    if (inspection) {
-        const baseClasses = "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold border";
-
-        // 1. ส่วนแสดงผลความมั่นใจและความรุนแรง
-        if (metricsContainer && (inspection.ai_confidence != null || inspection.severity != null)) {
-            if (inspection.ai_confidence != null) {
-                document.getElementById('confidence-badge').innerText = `ความมั่นใจ ${inspection.ai_confidence}%`;
-                document.getElementById('confidence-badge').className = `${baseClasses} border-blue-200 bg-blue-50 text-blue-700`;
-            }
-            if (inspection.severity != null) {
-                document.getElementById('severity-badge').innerText = `ความสี่ยง ${inspection.severity}`;
-                document.getElementById('severity-badge').className = `${baseClasses} border-amber-200 bg-amber-50 text-amber-700`;
-            }
-            metricsContainer.classList.remove('hidden');
-        }
-
-        // 2. ส่วนแสดงผล ผ่าน / ไม่ผ่าน
-        if (statusBadge && inspection.is_passed != null) {
-            const isPass = inspection.is_passed === true;
-            statusBadge.innerText = isPass ? 'ผ่าน' : 'ไม่ผ่าน';
-
-            if (isPass) {
-                statusBadge.className = `${baseClasses} border-green-200 bg-green-50 text-green-700`;
-            } else {
-                statusBadge.className = `${baseClasses} border-red-200 bg-red-50 text-red-600`;
-            }
-        }
-    }
-
     // คัดแยกกลุ่มข้อมูล
     const passedItems = results.filter(item => item.pass_fail_result === true && item.passed_items);
     const failedItems = results.filter(item => item.pass_fail_result === false && item.detected_issues);
@@ -850,36 +944,54 @@ async function loadAIInspection(submissionId) {
 
     let finalHTML = '';
 
-    // สิ่งที่ตรวจผ่าน
-    if (passedItems.length > 0) {
-        finalHTML += `
-            <div class="mb-6">
-                <p class="font-bold mb-2 text-sm">สิ่งที่ตรวจผ่าน</p>
-                <ul class="list-disc pl-5 space-y-1 text-gray-800">
-                    ${passedItems.map(item => `<li>${item.passed_items}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-    }
-
     // สิ่งที่ตรวจไม่ผ่าน (รวมข้อผิดพลาดและคำแนะนำไว้ในนี้)
     if (failedItems.length > 0) {
         finalHTML += `
             <div class="mb-6">
-                <p class="font-bold mb-2 text-sm">สิ่งที่ตรวจไม่ผ่าน</p>
-                <ul class="list-disc pl-5 space-y-4 text-gray-700">
-                    ${failedItems.map(item => `
+                <p class="font-bold mb-2 text-sm flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                    ส่วนที่ต้องแก้ไข (${failedItems.length} รายการ)
+                </p>
+
+                <ol class="list-decimal pl-5 space-y-4 text-gray-700 font-medium">
+                    ${failedItems.map((item) => {
+            const safeIssue = escapeHtml(item.detected_issues);
+            // ไฮไลท์ส่วนที่อยู่ในวงเล็บ [...] เช่น [หน้า 3 ย่อหน้าที่ 2 บรรทัดที่ 4] ให้เป็นตัวอักษรสีแดงเด่นชัด
+            const formattedIssue = safeIssue.replace(
+                /^\[(.*?)\]\s*/,
+                `<span class=" text-[13px] font-bold mr-1">$1</span>`
+            );
+
+            return `
                         <li>
-                            <p class="font-medium">${item.detected_issues}</p>
-                            ${item.correction_suggestions ? `
-                                <div class="mt-1">
-                                    <p class="font-semibold text-[#213f8c] text-xsmb-1">คำแนะนำ</p>
-                                    <p class="text-gray-500 text-[13px] bg-blue-50/50 p-2 rounded">${item.correction_suggestions}</p>
-                                </div>
-                            ` : ''}
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-gray-800 leading-relaxed text-[13px]">${formattedIssue}</p> ${item.correction_suggestions ? `
+                                    <div class="mt-1">
+                                        <p class="font-semibold text-[#213f8c] text-xs mb-1">คำแนะนำ</p>
+                                        <p class="text-gray-500 text-[13px] bg-blue-50/50 p-2 rounded font-normal">${escapeHtml(item.correction_suggestions)}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </li>
-                    `).join('')}
-                </ul>
+                        `;
+        }).join('')}
+                </ol>
+            </div>
+        `;
+    }
+
+    // สิ่งที่ตรวจผ่าน
+    if (passedItems.length > 0) {
+        finalHTML += `
+            <div class="mb-6">
+                <p class="font-bold mb-2 text-sm flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                    ส่วนที่ผ่านแล้ว (${passedItems.length} รายการ)
+                </p>
+
+                <ol class="list-decimal pl-5 space-y-1 text-gray-800">
+                    ${passedItems.map(item => `<li>${escapeHtml(item.passed_items)}</li>`).join('')}
+                </ol>
             </div>
         `;
     }
@@ -889,9 +1001,9 @@ async function loadAIInspection(submissionId) {
         finalHTML += `
             <div class="mb-6">
                 <p class="font-bold mb-2 text-sm">สิ่งที่ไม่สามารถตรวจสอบได้</p>
-                <ul class="list-disc pl-5 space-y-1 text-gray-800">
-                    ${uncheckableItems.map(item => `<li>${item.uncheckable_items}</li>`).join('')}
-                </ul>
+                <ol class="list-decimal pl-5 space-y-1 text-gray-800">
+                    ${uncheckableItems.map(item => `<li>${escapeHtml(item.uncheckable_items)}</li>`).join('')}
+                </ol>
             </div>
         `;
     }
@@ -910,7 +1022,9 @@ async function loadDocumentFormats() {
 
     const { data: formats, error: error } = await supabaseClient
         .from('document_format')
-        .select('*');
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_deleted', false);
 
     if (error) {
         console.error("โหลดข้อมูลมาตรฐานล้มเหลว:", error);
@@ -960,17 +1074,27 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            if (this.files && this.files.length === 1 && !this.files[0].name.toLowerCase().endsWith('.pdf')) {
-                alert("รองรับเฉพาะไฟล์ PDF");
-                resetFileInput();
-                return;
-            }
-
             if (this.files && this.files.length === 1) {
+                const file = this.files[0];
+
+                // เช็กว่าเป็นไฟล์ PDF
+                if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith('.pdf')) {
+                    alert("รองรับเฉพาะไฟล์ PDF เท่านั้น");
+                    resetFileInput();
+                    return;
+                }
+
+                // เช็กขนาดไฟล์ไม่เกิน 15MB
+                if (file.size > 15 * 1024 * 1024) {
+                    alert("ขนาดไฟล์เกิน 15MB กรุณาลดขนาดไฟล์ก่อนอัปโหลด");
+                    resetFileInput();
+                    return;
+                }
+
                 fileIndicator.classList.remove('hidden');
-                clearFileBtn.classList.remove('hidden'); // โชว์ปุ่ม X
+                clearFileBtn.classList.remove('hidden');
                 fileLabel.classList.add('text-[#213f8c]', 'bg-blue-50');
-                fileLabel.title = "ไฟล์ที่เตรียมส่ง: " + this.files[0].name;
+                fileLabel.title = "ไฟล์ที่เตรียมส่ง: " + file.name;
             } else {
                 resetFileInput();
             }
@@ -987,6 +1111,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ตรวจสอบเงื่อนไขตอนกดปุ่มส่ง
     if (uploadBtn) {
+        const draftCheckBtn = document.getElementById('draft-check-btn');
+        if (draftCheckBtn) {
+            draftCheckBtn.addEventListener('click', () => {
+                const hasFile = fileUpload.files && fileUpload.files.length > 0;
+                const hasFormat = formatSelect.value !== "";
+
+                if (!hasFile || !hasFormat) {
+                    alert("กรุณาเลือกไฟล์และมาตรฐานเอกสารก่อนกดตรวจทาน");
+                    return;
+                }
+
+                const originalBtnContent = draftCheckBtn.innerHTML;
+                draftCheckBtn.disabled = true;
+                draftCheckBtn.innerHTML = "กำลังตรวจ...";
+
+                const feedbackContainer = document.getElementById('ai-feedback-container');
+                const renderProgressStatus = (title, detail) => {
+                    if (feedbackContainer) {
+                        feedbackContainer.innerHTML = `
+                        <div class="p-4 rounded-xl border bg-blue-50 border-blue-200 text-blue-800 flex items-start gap-3 my-2 shadow-sm transition-all">
+                            <svg class="animate-spin h-5 w-5 text-blue-600 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <div>
+                                <p class="font-bold text-[13px]">${title}</p>
+                                <p class="text-[12px] opacity-90 mt-0.5">${detail}</p>
+                            </div>
+                        </div>`;
+                    }
+                };
+
+                const file = fileUpload.files[0];
+                const formatId = formatSelect.value;
+                const projectId = new URLSearchParams(window.location.search).get('id');
+                const fileExt = file.name.split('.').pop();
+                const safeFileName = `draft_proj${projectId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
+                const bucketName = 'student_submissions';
+
+                renderProgressStatus("กำลังประมวลผลฉบับร่าง", "อัปโหลดไฟล์สำหรับการตรวจทาน...");
+
+                (async () => {
+                    try {
+                        // อัปโหลดไฟล์
+                        const { error: uploadError } = await supabaseClient.storage.from(bucketName).upload(safeFileName, file);
+                        if (uploadError) throw uploadError;
+
+                        const { data: publicUrlData } = supabaseClient.storage.from(bucketName).getPublicUrl(safeFileName);
+                        const filePublicUrl = publicUrlData.publicUrl;
+                        const { data: { user } } = await supabaseClient.auth.getUser();
+
+                        // บันทึกเป็นฉบับร่าง (processing_status = 'ฉบับร่าง') และเลขเวอร์ชัน = 0
+                        const { data: newSubmissionData, error: insertError } = await supabaseClient
+                            .from('document_submission')
+                            .insert([{
+                                project_id: parseInt(projectId),
+                                format_id: parseInt(formatId),
+                                file_link: filePublicUrl,
+                                processing_status: 'ฉบับร่าง',  // สำคัญ! ใช้แยกว่าคือฉบับร่าง
+                                is_draft: true,
+                                user_id: user?.id,
+                                submission_number: 0            // เลข 0 เพื่อไม่ให้นับเป็น v1, v2
+                            }])
+                            .select()
+                            .single();
+
+                        if (insertError) throw insertError;
+
+                        renderProgressStatus("กำลังให้ AI ตรวจสอบ", "วิเคราะห์ไฟล์ฉบับร่างของคุณ โปรดรอสักครู่");
+
+                        // ยิง API ตรวจ AI เหมือนการส่งจริง
+                        const { error: aiError } = await supabaseClient.functions.invoke('ai-inspector', {
+                            body: { submission_id: newSubmissionData.submission_id, file_url: filePublicUrl }
+                        });
+                        if (aiError) throw aiError;
+
+                        // โหลดประวัติใหม่
+                        alert("AI ตรวจทานเสร็จสิ้น!");
+                        resetFileInput();
+                        formatSelect.value = "";
+
+                        await loadSubmissionHistory(projectId, newSubmissionData.submission_id);
+
+                        const formatDisplayEl = document.getElementById('display-format-name');
+                        if (formatDisplayEl) {
+                            formatDisplayEl.innerText = `โหมดตรวจทานฉบับร่าง (ไม่บันทึกในประวัติส่งอาจารย์)`;
+                        }
+
+                    } catch (err) {
+                        console.log("Draft Error:", err);
+                        alert("ขัดข้อง: " + (err.message || "เกิดข้อผิดพลาดในการประมวลผลฉบับร่าง"));
+                    } finally {
+                        draftCheckBtn.disabled = false;
+                        draftCheckBtn.innerHTML = originalBtnContent;
+                    }
+                })();
+            });
+        }
         uploadBtn.addEventListener('click', () => {
             const hasFile = fileUpload.files && fileUpload.files.length > 0;
             const hasFormat = formatSelect.value !== "";
@@ -1165,59 +1384,143 @@ async function loadTeacherFeedback(submissionId) {
     const historyContainer = document.getElementById('teacher-feedback-history') || document.getElementById('teacher-feedback-container');
     if (!historyContainer) return;
 
-    // 1. ดึง ID ของคนที่กำลังล็อกอินอยู่ เพื่อเอาไปเช็กว่าใครเป็นเจ้าของคอมเมนต์
     const { data: { user } } = await supabaseClient.auth.getUser();
     const currentUserId = user?.id;
+    const projectId = new URLSearchParams(window.location.search).get('id');
 
-    // 2. ดึงข้อมูลคอมเมนต์ 
+    const { data: allSubs } = await supabaseClient
+        .from('document_submission')
+        .select('submission_id, submission_number')
+        .eq('project_id', projectId);
+
+    const subMap = {};
+    let currentSubNumber = 0;
+    if (allSubs) {
+        allSubs.forEach(s => {
+            subMap[s.submission_id] = s.submission_number;
+            if (s.submission_id == submissionId) {
+                currentSubNumber = s.submission_number;
+            }
+        });
+    }
+
+    const allSubIds = allSubs ? allSubs.map(s => s.submission_id) : [submissionId];
     const { data: feedbacks } = await supabaseClient
         .from('feedback')
-        .select('feedback_id, details, created_at, user_id, users(first_name)')
-        .eq('submission_id', submissionId)
+        .select('feedback_id, submission_id, details, created_at, user_id, users(first_name)')
+        .in('submission_id', allSubIds)
         .order('created_at', { ascending: false });
 
     if (!feedbacks || feedbacks.length === 0) {
-        historyContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์ในเวอร์ชันนี้</p>`;
+        historyContainer.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">ยังไม่มีคำแนะนำจากอาจารย์</p>`;
         return;
     }
 
-    // 3. สร้างการ์ดคอมเมนต์พร้อมปุ่ม (ถ้าเป็นเจ้าของคอมเมนต์ ถึงจะเห็นปุ่ม)
-    historyContainer.innerHTML = feedbacks.map(f => {
-        const isOwner = f.user_id === currentUserId; // เช็กว่าเป็นคอมเมนต์ของตัวเองไหม
+    const currentFeedbacks = feedbacks.filter(f => f.submission_id == submissionId);
+    const previousFeedbacks = feedbacks.filter(f => {
+        if (f.submission_id == submissionId) return false;
+        const fSubNum = subMap[f.submission_id] || 0;
+        return currentSubNumber === 0 ? fSubNum > 0 : (fSubNum > 0 && fSubNum < currentSubNumber);
+    });
 
-        // โค้ดปุ่ม แก้ไข/ลบ
-        const actionButtons = isOwner ? `
+    const renderFeedbackCard = (f, isPrevious = false) => {
+        const isOwner = f.user_id === currentUserId;
+        const vNum = subMap[f.submission_id];
+        const versionBadge = isPrevious && vNum 
+            ? `<span class="bg-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full mr-1.5">v${vNum}</span>` 
+            : '';
+
+        const actionButtons = (isOwner && !isPrevious) ? `
             <div class="flex gap-3 mt-2 justify-end">
                 <button onclick="editFeedback('${f.feedback_id}')" class="text-[11px] text-[#213f8c] hover:text-blue-800 font-bold transition-colors cursor-pointer">แก้ไข</button>
                 <button onclick="deleteFeedback('${f.feedback_id}', '${submissionId}')" class="text-[11px] text-red-500 hover:text-red-700 font-bold transition-colors cursor-pointer">ลบ</button>
             </div>
         ` : '';
 
+        const teacherName = escapeHtml(f.users?.first_name || 'ไม่ทราบชื่อ');
+        const feedbackDetails = escapeHtml(f.details || '');
+        const isLongText = (f.details || '').length > 140 || (f.details || '').split('\n').length > 3;
+
+        const cardStyle = isPrevious 
+            ? "p-3 rounded-lg mb-2" 
+            : "bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-2.5";
+
         return `
-            <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-3" id="feedback-card-${f.feedback_id}">
-                <p class="text-[11px] text-gray-500 mb-1">
-                    ${new Date(f.created_at).toLocaleString('th-TH')} - โดยอาจารย์ ${f.users?.first_name || 'ไม่ทราบชื่อ'}
+            <div class="${cardStyle}" id="feedback-card-${f.feedback_id}">
+                <p class="text-[11px] text-gray-500 mb-1 flex items-center flex-wrap">
+                    ${versionBadge}
+                    <span>${new Date(f.created_at).toLocaleString('th-TH')} - อ.${teacherName}</span>
                 </p>
                 
-                <!-- ส่วนแสดงข้อความปกติ -->
-                <p class="text-[13px] text-gray-800" id="feedback-text-${f.feedback_id}">${f.details}</p>
+                <div id="feedback-text-wrapper-${f.feedback_id}">
+                    <p class="text-[13px] text-gray-800 whitespace-pre-line break-words ${isLongText ? 'line-clamp-3' : ''}" id="feedback-text-${f.feedback_id}">${feedbackDetails}</p>
+                    ${isLongText ? `
+                        <button onclick="toggleReadMore('${f.feedback_id}', this)" class="text-[11px] text-[#213f8c] font-semibold hover:underline mt-1 cursor-pointer">
+                            อ่านเพิ่มเติม ▾
+                        </button>
+                    ` : ''}
+                </div>
                 
                 <div id="edit-form-${f.feedback_id}" class="hidden mt-2">
-                    <textarea id="edit-input-${f.feedback_id}" class="w-full border border-gray-200 rounded p-2 text-[12px] mb-2 focus:outline-none focus:border-[#213f8c] resize-none" rows="3">${f.details}</textarea>
+                    <textarea id="edit-input-${f.feedback_id}" class="w-full border border-gray-200 rounded p-2 text-[12px] mb-2 focus:outline-none focus:border-[#213f8c] resize-none" rows="3">${feedbackDetails}</textarea>
                     <div class="flex gap-2 justify-end">
                         <button onclick="cancelEdit('${f.feedback_id}')" class="text-[11px] text-gray-600 hover:text-gray-800 bg-gray-200 px-3 py-1.5 rounded-md transition-colors cursor-pointer">ยกเลิก</button>
                         <button onclick="saveEdit('${f.feedback_id}', '${submissionId}')" class="text-[11px] text-white bg-[#213f8c] hover:bg-[#1a3270] px-3 py-1.5 rounded-md transition-colors cursor-pointer">บันทึกการแก้ไข</button>
                     </div>
                 </div>
                 
-                <!-- กล่องใส่ปุ่ม แก้ไข/ลบ -->
                 <div id="action-btns-${f.feedback_id}">
                     ${actionButtons}
                 </div>
             </div>
         `;
-    }).join('');
+    };
+
+    let htmlOutput = '';
+
+    // คำแนะนำของเวอร์ชันปัจจุบัน
+    htmlOutput += `<div class="mb-4">`;
+    if (currentFeedbacks.length > 0) {
+        htmlOutput += currentFeedbacks.map(f => renderFeedbackCard(f, false)).join('');
+    } else {
+        htmlOutput += `<p class="text-xs text-gray-400 py-3 bg-gray-50/50 rounded-lg text-center border border-dashed border-gray-200">ยังไม่มีคำแนะนำใหม่ในเวอร์ชันนี้</p>`;
+    }
+    htmlOutput += `</div>`;
+
+    // ประวัติคำแนะนำจากเวอร์ชันก่อนหน้า
+    if (previousFeedbacks.length > 0) {
+        htmlOutput += `
+            <details class="group border border-gray-200 rounded-xl bg-white overflow-hidden">
+                <summary class="flex items-center justify-between px-3.5 py-2.5 text-xs font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 cursor-pointer select-none list-none">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        ดูคำแนะนำจากเวอร์ชันก่อนหน้า (${previousFeedbacks.length})
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </summary>
+                <div class="p-3 max-h-[260px]">
+                    ${previousFeedbacks.map(f => renderFeedbackCard(f, true)).join('')}
+                </div>
+            </details>
+        `;
+    }
+
+    historyContainer.innerHTML = htmlOutput;
 }
+
+// ฟังก์ชันกดปุ่ม "อ่านเพิ่มเติม / ย่อข้อความ" สำหรับคอมเมนต์ยาวๆ
+window.toggleReadMore = function (feedbackId, btnEl) {
+    const textEl = document.getElementById(`feedback-text-${feedbackId}`);
+    if (!textEl) return;
+
+    if (textEl.classList.contains('line-clamp-3')) {
+        textEl.classList.remove('line-clamp-3');
+        btnEl.innerText = 'ย่อข้อความ ▴';
+    } else {
+        textEl.classList.add('line-clamp-3');
+        btnEl.innerText = 'อ่านเพิ่มเติม ▾';
+    }
+};
 
 // การแก้ไขและลบ (Global Scope)
 // เปิดกล่องแก้ไข
@@ -1273,6 +1576,3 @@ window.deleteFeedback = async function (feedbackId, submissionId) {
     // โหลดคอมเมนต์ใหม่มาโชว์
     await loadTeacherFeedback(submissionId);
 };
-
-
-

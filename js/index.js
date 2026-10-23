@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase.js';
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (sessionStorage.getItem('is_resetting_password') === 'true') return;
 
     // ถ้าสถานะคือ ล็อกอินสำเร็จแล้ว
     if (event === 'SIGNED_IN' && session) {
@@ -26,6 +27,12 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 
 document.addEventListener("DOMContentLoaded", async () => {
     const pageLoader = document.getElementById('page-loader');
+    
+    if (sessionStorage.getItem('is_resetting_password') === 'true') {
+        sessionStorage.removeItem('is_resetting_password');
+        await supabaseClient.auth.signOut();
+    }
+
     // เช็กว่ามีคนล็อกอินค้างไว้ในระบบเครื่องนี้ไหม
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {

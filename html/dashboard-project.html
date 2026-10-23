@@ -122,7 +122,7 @@
             </div>
 
             <!-- ที่โชว์เอกสารตรงกลาง -->
-            <div class="md:col-span-7 min-h-0 md:h-full flex flex-col relative pb-10 h-[00px] md:h-auto">
+            <div class="md:col-span-7 min-h-0 md:h-full flex flex-col relative pb-10 h-full md:h-auto">
                 <div class="shrink-0 flex items-center gap-3 pl-2 h-10">
                     <div>
                         <span id="submitter-name" class="font-semibold text-sm text-gray-800"></span>
@@ -136,8 +136,13 @@
                 </div>
 
                 <!-- กล่องอัปโหลด -->
-                <div class="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none px-6">
-                    <div class="bg-white/95 backdrop-blur-sm rounded-full border border-gray-200 shadow-[0_8px_20px_rgb(0,0,0,0.06)] p-1.5 flex items-center justify-between w-full max-w-[450px] pointer-events-auto transition-all hover:shadow-[0_8px_25px_rgb(0,0,0,0.1)]">
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none px-6 z-20">
+                    
+                    <!-- 1. ป้ายแจ้งเตือนเมื่อระบบล็อกการส่งเอกสาร -->
+                    <div id="locked-warning" class="hidden"></div>
+
+                    <!-- ปุ่มอัปโหลดปกติ -->
+                    <div id="upload-container" class="hidden bg-white/95 backdrop-blur-sm rounded-full border border-gray-200 shadow-[0_8px_20px_rgb(0,0,0,0.06)] p-1.5 flex items-center justify-between w-full max-w-[460px] pointer-events-auto transition-all hover:shadow-[0_8px_25px_rgb(0,0,0,0.1)]">
                         <div class="flex items-center">
                             <label id="file-label" class="p-2 text-gray-400 hover:text-[#213f8c] hover:bg-blue-50 rounded-full cursor-pointer transition-colors relative" title="แนบไฟล์เอกสาร">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -165,11 +170,16 @@
                             </svg>
                         </div>
 
-                        <button id="upload-btn" class="w-8 h-8 shrink-0 bg-[#213f8c] text-white rounded-full flex items-center justify-center hover:bg-[#1a3270] transition-colors shadow-sm cursor-pointer ml-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transform rotate-[-90deg] -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                        </button>
+                        <div class="flex gap-1 ml-2 border-l border-gray-100 pl-2">
+                            <!-- ปุ่มตรวจทาน -->
+                            <button id="draft-check-btn" class="px-3 py-1.5 h-9 bg-gray-100 text-gray-600 rounded-full text-xs font-bold hover:bg-gray-200 transition-colors shadow-sm cursor-pointer flex items-center gap-1" title="ทดลองตรวจกับ AI (ไม่บันทึกส่งอาจารย์)">
+                                ตรวจทาน
+                            </button>
+                            <!-- ปุ่มส่งจริง -->
+                            <button id="upload-btn" class="px-3 py-1.5 h-9 bg-[#213f8c] text-white rounded-full text-xs font-bold hover:bg-[#1a3270] transition-colors shadow-sm cursor-pointer flex items-center gap-1" title="ส่งไฟล์เวอร์ชันใหม่ให้อาจารย์">
+                                ส่งให้อาจารย์
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,7 +220,6 @@
     </div>
 
 
-    <!-- <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script> -->
     <script type="module" src="../js/dashboard-project.js"></script>
     <script type="module" src="../js/profile.js"></script>
 
