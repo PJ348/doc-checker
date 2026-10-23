@@ -104,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             else {
                 alert('เกิดข้อผิดพลาดในการสมัคร: ' + error.message);
+                resetButton();
             }
             return;
         }

@@ -20,35 +20,118 @@
     <div class="max-w-8xl mt-4 mx-auto w-full flex-1 bg-white rounded-t-[2rem] shadow-xl overflow-hidden flex flex-col min-h-[600px]">
 
         <!-- Dark Blue Top Bar -->
-        <div
-            class="sticky top-0 z-50 bg-[#213f8c] h-14 md:h-16 w-full flex items-center justify-end px-6 md:px-8 rounded-t-[2rem] shadow-md">
-
-            <!-- รูปโปรไฟล์ -->
-            <div id="profile-menu-container" class="relative">
-            </div>
+        <div class="bg-[#213f8c] h-14 md:h-16 w-full flex items-center justify-end px-6 md:px-8">
+            <div id="profile-menu-container" class="relative"></div>
         </div>
 
         <!-- Header Section -->
-        <div class="pt-12 pb-10 px-8 text-center">
+        <div class="pt-12 pb-6 px-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-[#213f8c] mb-8">AI Document Format Checker</h1>
 
+            <!-- ปุ่มสร้างรายวิชา / ชั้นเรียน -->
+            <button id="create-subject-btn"
+                class="relative flex items-center justify-center mx-auto w-full max-w-[500px] h-12 bg-[#213f8c] rounded-full hover:bg-[#082570] transition-colors group overflow-hidden cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3"
+                    stroke="currentColor" class="w-5 h-5 text-white absolute left-8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span class="text-base font-bold text-white z-10">สร้างรายวิชาใหม่</span>
+            </button>
+
+            <!-- ปุ่มแคปซูลรายวิชา -->
+            <div id="subject-chips" class="flex flex-wrap items-center justify-center gap-2 mt-6 max-w-4xl mx-auto"></div>
+
+            <!-- แถบสลิมบรรทัดเดียว -->
+            <div id="active-subject-bar" class="mt-3 flex justify-center"></div>
         </div>
 
         <!-- Projects Section -->
         <div class="px-8 md:px-16 pb-16">
-            <h2 class="text-xl font-bold text-gray-900 mb-6">โครงงานของฉัน</h2>
+            <div class="grid grid-cols-12 gap-4 items-center px-4 md:px-5 py-3 text-[13px] font-semibold text-gray-600 border-b border-gray-200/80 mb-2">
+                
+                <!-- คอลัมน์ชื่อโครงงาน -->
+                <div class="col-span-5 md:col-span-6 text-gray-800 text-[15px] font-bold">
+                    โครงงานในที่ปรึกษา
+                </div>
 
-            <!-- Grid Container -->
-            <div id="project-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- คอลัมน์รายวิชา / ชั้นเรียน -->
+                <div class="hidden md:flex md:col-span-2 justify-center text-gray-500 font-medium">
+                    รายวิชา / ชั้นเรียน
+                </div>
+
+                <!-- คอลัมน์ตัวกรองสถานะ -->
+                <div class="col-span-4 md:col-span-2 flex justify-center">
+                    <div class="relative inline-flex items-center">
+                        <select id="status-filter" class="appearance-none bg-transparent hover:bg-gray-100 px-3 py-1.5 pr-7 rounded-lg text-[13px] font-medium text-gray-600 focus:outline-none cursor-pointer transition-colors">
+                            <option value="all">สถานะทั้งหมด</option>
+                            <option value="กำลังดำเนิน">กำลังดำเนิน</option>
+                            <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                        </select>
+                        <svg class="w-3.5 h-3.5 text-gray-500 absolute right-2 pointer-events-none" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- คอลัมน์วันที่เริ่มโครงงาน -->
+                <div class="col-span-3 md:col-span-2 flex justify-end pr-9">
+                    <span class="hidden sm:inline text-gray-500 font-medium">วันที่เริ่มโครงงาน</span>
+                </div>
+            </div>
+
+            <!-- พื้นที่แสดงรายการแถวโครงงาน -->
+            <div id="project-container" class="flex flex-col divide-y divide-gray-100"></div>
+        </div>
+    </div>
+
+    <!-- Modal สร้างรายวิชา / ชั้นเรียน -->
+    <div id="subject-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div class="w-full max-w-[460px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-8 pt-6">
+                <h2 class="text-xl font-bold text-gray-800">สร้างรายวิชา / ชั้นเรียน</h2>
+                <button id="close-subject-modal" class="text-gray-400 hover:text-gray-700 cursor-pointer">✕</button>
+            </div>
+
+            <div class="p-8">
+                <form id="create-subject-form" class="flex flex-col gap-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[13px] text-gray-700 font-medium mb-1.5">เทอม / ปี <span class="text-red-500">*</span> <span id="semester-year_error" class="text-red-500 text-xs ml-1 hidden">กรุณากรอกข้อมูล</span></label>
+                            <input type="text" id="semester-year" placeholder="เช่น 1/2569"
+                                class="w-full text-[13px] border border-gray-200 rounded-lg px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282]">
+                        </div>
+                        <div>
+                            <label class="block text-[13px] text-gray-700 font-medium mb-1.5">ชั้นเรียน <span class="text-red-500">*</span> <span id="subject-section_error" class="text-red-500 text-xs ml-1 hidden">กรุณากรอกชั้นเรียน</span></label>
+                            <input type="text" id="subject-section" placeholder="เช่น ม.1/1, ม.1/2" 
+                                class="w-full text-[13px] border border-gray-200 rounded-lg px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282]">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[13px] text-gray-700 font-medium mb-1.5">ชื่อรายวิชา <span class="text-red-500">*</span> <span id="subject-name_error" class="text-red-500 text-xs ml-1 hidden">กรุณากรอกชื่อวิชา</span></label>
+                        <input type="text" id="subject-name" list="existing-subjects-list" placeholder="เช่น ว21101 วิทยาการคำนวณ" 
+                            class="w-full text-[13px] border border-gray-200 rounded-lg px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282]">
+                        <datalist id="existing-subjects-list"></datalist>
+                        <p class="text-xs text-gray-400 mt-1.5">* หากสอนหลายห้อง พิมพ์ลูกน้ำ (,) คั่นในช่องชั้นเรียนได้เลย เช่น ม.1/1, ม.1/2 ระบบจะแยกห้องและสร้างรหัสให้ครบทุกห้องอัตโนมัติ</p>
+                    </div>
+
+                    <span id="subject-form_error" class="text-red-500 text-xs font-medium hidden"></span>
+
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button type="button" id="cancel-subject-btn"
+                            class="px-6 py-2 bg-white text-gray-700 font-semibold rounded-xl hover:bg-gray-100 text-sm cursor-pointer">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" id="submit-subject-btn"
+                            class="px-6 py-2 bg-[#213f8c] text-white font-semibold rounded-xl hover:bg-[#082570] text-sm cursor-pointer">
+                            บันทึก
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-
-
-
-    <!-- <script src="../node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
     <script type="module" src="../js/dashboard-teacher.js"></script>
     <script type="module" src="../js/profile.js"></script>
 

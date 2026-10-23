@@ -1,7 +1,32 @@
 import { supabaseClient } from './supabase.js';
-document.addEventListener("DOMContentLoaded", () => {
 
-    // ระบบสลับหน้า
+document.addEventListener("DOMContentLoaded", async () => {
+
+    // ดึง ID คนที่ล็อกอินอยู่ เพื่อป้องกันการเปลี่ยนสิทธิ์ตัวเอง
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const currentAdminId = session?.user?.id;
+    // Role Guard: ต้องล็อกอินและเป็น Admin (role_id === 3)
+    if (!session || !currentAdminId) {
+        alert("กรุณาเข้าสู่ระบบก่อนใช้งาน");
+        window.location.replace("../index.html");
+        return;
+    }
+
+    const { data: myRole } = await supabaseClient
+        .from('user_role')
+        .select('role_id')
+        .eq('user_id', currentAdminId)
+        .maybeSingle();
+
+    if (!myRole || myRole.role_id !== 3) {
+        alert("คุณไม่มีสิทธิ์เข้าถึงหน้าผู้ดูแลระบบ (Admin Only)");
+        if (myRole?.role_id === 1) window.location.replace("./dashboard-student.html");
+        else if (myRole?.role_id === 2) window.location.replace("./dashboard-teacher.html");
+        else window.location.replace("../index.html");
+        return;
+    }
+
+    // สลับหน้าtab
     const tabs = {
         home: { btn: document.getElementById('tab-home'), section: document.getElementById('section-home') },
         roles: { btn: document.getElementById('tab-roles'), section: document.getElementById('section-roles') },
@@ -68,10 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
         pagContainer.appendChild(nextBtn);
     }
 
-    // โหลดข้อมูลจัดการสิทธิ์ 
+    // ระบบจัดการสิทธิ์ผู้ใช้ + ระบบค้นหา
     let allUsersData = [];
+    let filteredUsersData = [];
     let allRolesData = [];
-    let allFormatsData = [];
     const rolesPerPage = 10;
 
     async function loadUsersAndRoles() {
@@ -81,54 +106,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { data: usersData, error: usersError } = await supabaseClient.from('users').select('*');
         const { data: rolesData, error: rolesError } = await supabaseClient.from('user_role').select('*');
-        const { data: formatsData, error: formatsError } = await supabaseClient.from('document_format').select('*');
 
-        if (usersError || rolesError || formatsError) {
+        if (usersError || rolesError) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
             return;
         }
 
-        allUsersData = usersData;
-        allRolesData = rolesData;
-        allFormatsData = formatsData;
+        allUsersData = usersData || [];
+        allRolesData = rolesData || [];
+
+        // คงค่าการค้นหาเดิมไว้หากมีการพิมพ์ค้างไว้ในช่องค้นหา
+        const roleSearchInput = document.querySelector('#section-roles input[type="text"]');
+        const keyword = roleSearchInput ? roleSearchInput.value.toLowerCase().trim() : '';
+        if (keyword) {
+            filteredUsersData = allUsersData.filter(user => {
+                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                return fullName.includes(keyword) || email.includes(keyword);
+            });
+        } else {
+            filteredUsersData = [...allUsersData];
+        }
 
         const totalUsersEl = document.getElementById('total-users');
         if (totalUsersEl) totalUsersEl.innerHTML = `${allUsersData.length} <span class="text-sm font-normal text-gray-500">คน</span>`;
 
-        const totalFormatsEl = document.getElementById('total-formats');
-        if (totalFormatsEl) totalFormatsEl.innerHTML = `${allFormatsData.length} <span class="text-sm font-normal text-gray-500">รูปแบบ</span>`;
-
         renderRolesTable(1);
+    }
+
+    // ดักจับการพิมพ์ค้นหาผู้ใช้งาน
+    const roleSearchInput = document.querySelector('#section-roles input[type="text"]');
+    if (roleSearchInput) {
+        roleSearchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            filteredUsersData = allUsersData.filter(user => {
+                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                return fullName.includes(keyword) || email.includes(keyword);
+            });
+            renderRolesTable(1);
+        });
     }
 
     function renderRolesTable(page) {
         const tbody = document.getElementById('table-roles-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
+
+        if (filteredUsersData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-medium">ไม่พบผู้ใช้งานที่ค้นหา</td></tr>';
+            renderPaginationUI('roles', 0, 1, rolesPerPage, renderRolesTable);
+            return;
+        }
 
         const startIndex = (page - 1) * rolesPerPage;
         const endIndex = startIndex + rolesPerPage;
-        const currentUsers = allUsersData.slice(startIndex, endIndex);
+        const currentUsers = filteredUsersData.slice(startIndex, endIndex);
 
         currentUsers.forEach(user => {
             const userRole = allRolesData.find(r => r.user_id === user.user_id);
             const roleId = userRole ? userRole.role_id : 1;
+            const isSelf = user.user_id === currentAdminId; // เช็กว่าเป็นแอดมินที่กำลังล็อกอินอยู่หรือไม่
 
             let roleBadge = '';
-            let initialColor = '';
-
             if (roleId === 1) {
                 roleBadge = '<span class="px-4 py-1 bg-green-50 text-green-600 border border-green-200 rounded-full text-xs font-bold">นิสิต</span>';
-                initialColor = 'bg-gray-100 text-gray-600';
             } else if (roleId === 2) {
                 roleBadge = '<span class="px-4 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-xs font-bold">อาจารย์</span>';
-                initialColor = 'bg-blue-100 text-blue-600';
             } else {
                 roleBadge = '<span class="px-4 py-1 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-full text-xs font-bold">Admin</span>';
-                initialColor = 'bg-indigo-100 text-indigo-600';
             }
 
-            const initial = user.first_name ? user.first_name.charAt(0) : '?';
-            const fullName = `${user.first_name || ''} ${user.last_name || ''}`;
+            const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
             const userEmail = user.email || '-';
 
             const tr = document.createElement('tr');
@@ -136,7 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
             tr.innerHTML = `
                 <td class="px-6 py-4 truncate">
                     <div class="flex items-center gap-4 w-full">
-                        <span class="text-gray-800 truncate" title="${fullName}">${fullName}</span>
+                        <span class="text-gray-800 truncate" title="${fullName}">
+                            ${fullName} ${isSelf ? '<span class="text-xs text-[#213f8c] font-semibold">(คุณ)</span>' : ''}
+                        </span>
                     </div>
                 </td>
                 <td class="px-6 py-4 text-gray-500 text-[13px] truncate" title="${userEmail}">
@@ -144,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </td>
                 <td class="px-6 py-4">${roleBadge}</td>
                 <td class="px-6 py-4">
-                    <select data-userid="${user.user_id}" data-name="${fullName}" class="role-selector border border-gray-200 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#213f8c] shadow-sm cursor-pointer w-full">
+                    <select data-userid="${user.user_id}" data-name="${fullName}" class="role-selector border border-gray-200 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:border-[#213f8c] shadow-sm w-full ${isSelf ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer'}" ${isSelf ? 'disabled' : ''}>
                         <option value="1" ${roleId === 1 ? 'selected' : ''}>นิสิต (Student)</option>
                         <option value="2" ${roleId === 2 ? 'selected' : ''}>อาจารย์ (Advisor)</option>
                         <option value="3" ${roleId === 3 ? 'selected' : ''}>ผู้ดูแล (Admin)</option>
@@ -166,9 +217,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                const { error } = await supabaseClient.from('user_role').update({ role_id: newRoleId }).eq('user_id', userId);
+                // ใช้ upsert เพื่อรองรับทั้งกรณีที่มีข้อมูลอยู่แล้วและยังไม่มีแถวใน user_role
+                const { error } = await supabaseClient.from('user_role').upsert({ user_id: userId, role_id: newRoleId });
                 if (error) {
                     alert("เปลี่ยนสิทธิ์ไม่สำเร็จ: " + error.message);
+                    renderRolesTable(page);
                     return;
                 }
                 await loadUsersAndRoles();
@@ -176,10 +229,10 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        renderPaginationUI('roles', allUsersData.length, page, rolesPerPage, renderRolesTable);
+        renderPaginationUI('roles', filteredUsersData.length, page, rolesPerPage, renderRolesTable);
     }
 
-    // โหลดข้อมูล Audit Logs
+    // ระบบ Audit Logs (รองรับ Local Timezone)
     let allLogsData = [];
     let filteredLogsData = [];
     const logsPerPage = 10;
@@ -189,7 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const recentBody = document.getElementById('table-logs-recent');
         if (!fullBody) return;
 
-        // ดึงข้อมูลทั้งหมดจากฐานข้อมูล
         const { data: logsData, error } = await supabaseClient
             .from('operation_history')
             .select(`*, users (first_name, last_name)`)
@@ -199,10 +251,9 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("เกิดข้อผิดพลาดในการดึง Logs:", error);
             return;
         }
-        
+
         allLogsData = logsData || [];
-        
-        filteredLogsData = [...allLogsData]; 
+        filteredLogsData = [...allLogsData];
 
         const dateFilterInput = document.getElementById('log-date-filter');
         const clearFilterBtn = document.getElementById('clear-log-filter');
@@ -221,15 +272,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderLogsTable(page) {
         const fullBody = document.getElementById('table-logs-full');
+        if (!fullBody) return;
         fullBody.innerHTML = '';
 
-        const startIndex = (page - 1) * logsPerPage;
-        const endIndex = startIndex + logsPerPage;
-        
-        const currentLogs = filteredLogsData.slice(startIndex, endIndex);
+        if (filteredLogsData.length === 0) {
+            fullBody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500 font-medium">ไม่พบประวัติในวันที่เลือก</td></tr>';
+        } else {
+            const startIndex = (page - 1) * logsPerPage;
+            const endIndex = startIndex + logsPerPage;
+            const currentLogs = filteredLogsData.slice(startIndex, endIndex);
+            currentLogs.forEach(log => { fullBody.innerHTML += createLogHTML(log); });
+        }
 
-        currentLogs.forEach(log => { fullBody.innerHTML += createLogHTML(log); });
-        
         renderPaginationUI('logs', filteredLogsData.length, page, logsPerPage, renderLogsTable);
     }
 
@@ -238,7 +292,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
         const timeString = dateObj.toLocaleDateString('th-TH', dateOptions) + ' น.';
 
-        // จัดการแกะ JSON ให้แสดงผลสวยงาม
         const userName = log.users ? `${log.users.first_name || ''} ${log.users.last_name || ''}`.trim() : 'System';
 
         let detailText = log.details || '-';
@@ -254,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const displayAction = `
             <div>
                 <span class="font-bold text-[#213f8c] text-[13px]">${log.action_type || 'SYSTEM_ACTION'}</span>
-                <span class="block text-[11px] text-gray-500 truncate w-[300px] mt-0.5" title='${detailText}'>${detailText}</span>
+                <span class="block text-[11px] text-gray-500 truncate w-[300px] mt-0.5" title='${detailText.replace(/'/g, "&#39;")}'>${detailText}</span>
             </div>
         `;
 
@@ -262,7 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return `
             <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <!-- แสดงวันและเวลาแบบครบถ้วน -->
                 <td class="px-6 py-4 font-medium text-[13px]">${timeString}</td>
                 <td class="px-6 py-4">${userName}</td>
                 <td class="px-6 py-4">${displayAction}</td>
@@ -271,42 +323,45 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     }
 
-    // จัดการเหตุการณ์เมื่อผู้ใช้กดเลือกวันที่
+    // กรองวันที่ตาม Local TimeZone
     const dateFilterInput = document.getElementById('log-date-filter');
     const clearFilterBtn = document.getElementById('clear-log-filter');
 
     if (dateFilterInput) {
         dateFilterInput.addEventListener('change', (e) => {
-            const selectedDate = e.target.value; // จะได้ฟอร์แมต 'YYYY-MM-DD'
-            
+            const selectedDate = e.target.value;
+
             if (selectedDate) {
-                // กรองเอาเฉพาะข้อมูลที่วันที่ตรงกัน
                 filteredLogsData = allLogsData.filter(log => {
-                    const logDate = new Date(log.submission_time).toISOString().split('T')[0];
+                    const localDateObj = new Date(log.submission_time);
+                    const year = localDateObj.getFullYear();
+                    const month = String(localDateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(localDateObj.getDate()).padStart(2, '0');
+                    const logDate = `${year}-${month}-${day}`;
                     return logDate === selectedDate;
                 });
-                clearFilterBtn.classList.remove('hidden');
+                if (clearFilterBtn) clearFilterBtn.classList.remove('hidden');
             } else {
                 filteredLogsData = [...allLogsData];
-                clearFilterBtn.classList.add('hidden');
+                if (clearFilterBtn) clearFilterBtn.classList.add('hidden');
             }
-            
+
             renderLogsTable(1);
         });
     }
 
     if (clearFilterBtn) {
         clearFilterBtn.addEventListener('click', () => {
-            dateFilterInput.value = '';
-            filteredLogsData = [...allLogsData]; // คืนค่าข้อมูลทั้งหมด
+            if (dateFilterInput) dateFilterInput.value = '';
+            filteredLogsData = [...allLogsData];
             clearFilterBtn.classList.add('hidden');
             renderLogsTable(1);
         });
     }
 
-    // 4. ระบบจัดการและเพิ่มมาตรฐานเอกสาร 
-    //  ส่วนดึงข้อมูลและแสดงผล
+    // ระบบจัดการและเพิ่มมาตรฐานเอกสาร + ระบบค้นหา
     let allFormatsList = [];
+    let filteredFormatsList = [];
     const formatsPerPage = 5;
 
     async function loadFormats() {
@@ -346,25 +401,65 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         allFormatsList = data || [];
+
+        // คงค่าการค้นหาเดิมไว้หากมีการพิมพ์ค้างไว้ในช่องค้นหา
+        const formatSearchInput = document.querySelector('#section-formats input[type="text"]');
+        const keyword = formatSearchInput ? formatSearchInput.value.toLowerCase().trim() : '';
+        if (keyword) {
+            filteredFormatsList = allFormatsList.filter(f => {
+                let facName = ''; let progName = '';
+                if (f.use_by && f.use_by.length > 0) {
+                    facName = f.use_by[0].faculty?.faculty_name || '';
+                    progName = f.use_by[0].program?.program_name || '';
+                }
+                return (f.document_name || '').toLowerCase().includes(keyword) ||
+                    facName.toLowerCase().includes(keyword) ||
+                    progName.toLowerCase().includes(keyword);
+            });
+        } else {
+            filteredFormatsList = [...allFormatsList];
+        }
+
         const totalFormatsEl = document.getElementById('total-formats');
         if (totalFormatsEl) totalFormatsEl.innerHTML = `${allFormatsList.length} <span class="text-sm font-normal text-gray-500">รูปแบบ</span>`;
 
         renderFormatsList(1);
     }
 
+    // ดักจับการพิมพ์ค้นหามาตรฐานเอกสาร
+    const formatSearchInput = document.querySelector('#section-formats input[type="text"]');
+    if (formatSearchInput) {
+        formatSearchInput.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            filteredFormatsList = allFormatsList.filter(f => {
+                let facName = ''; let progName = '';
+                if (f.use_by && f.use_by.length > 0) {
+                    facName = f.use_by[0].faculty?.faculty_name || '';
+                    progName = f.use_by[0].program?.program_name || '';
+                }
+                return (f.document_name || '').toLowerCase().includes(keyword) ||
+                    facName.toLowerCase().includes(keyword) ||
+                    progName.toLowerCase().includes(keyword);
+            });
+            renderFormatsList(1);
+        });
+    }
+
     function renderFormatsList(page) {
         const container = document.getElementById('formats-list-container');
+        if (!container) return;
         container.innerHTML = '';
 
-        if (allFormatsList.length === 0) {
-            container.innerHTML = '<div class="p-8 text-center text-gray-500">ยังไม่มีข้อมูลมาตรฐานเอกสารในระบบ</div>';
+        if (filteredFormatsList.length === 0) {
+            const emptyMsg = allFormatsList.length === 0 ? 'ยังไม่มีข้อมูลมาตรฐานเอกสารในระบบ' : 'ไม่พบมาตรฐานเอกสารที่ค้นหา';
+            container.innerHTML = `<div class="p-8 text-center text-gray-500">${emptyMsg}</div>`;
             renderPaginationUI('formats', 0, 1, formatsPerPage, renderFormatsList);
             return;
         }
 
         const startIndex = (page - 1) * formatsPerPage;
         const endIndex = startIndex + formatsPerPage;
-        const currentFormats = allFormatsList.slice(startIndex, endIndex);
+        const currentFormats = filteredFormatsList.slice(startIndex, endIndex);
 
         currentFormats.forEach(format => {
             let facultyName = 'ไม่ระบุคณะ';
@@ -418,11 +513,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
 
-                    <!--ปุ่มดูรายละเอียด -->
+                    <!-- ปุ่มดูรายละเอียด -->
                     <button class="view-format-btn p-1.5 text-[#213f8c] hover:bg-blue-50 rounded-md transition-colors opacity-60 group-hover:opacity-100 cursor-pointer" data-id="${format.format_id}" title="ดูรายละเอียด">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     </button>
                     
+                    <!-- ปุ่มลบ -->
                     <button class="delete-format-btn p-1.5 ${isActive ? 'text-gray-400' : 'text-gray-300'} hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-60 group-hover:opacity-100 cursor-pointer" data-id="${format.format_id}" data-name="${format.document_name}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
@@ -447,7 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        // ปุ่มดูรายละเอียด
+        // Event: ปุ่มดูรายละเอียด
         document.querySelectorAll('.view-format-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
@@ -470,15 +566,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         alert("ลบไม่สำเร็จ: " + error.message);
                         return;
                     }
-                    loadFormats();
+                    await loadFormats();
+                    await loadAuditLogs();
                 }
             });
         });
 
-        renderPaginationUI('formats', allFormatsList.length, page, formatsPerPage, renderFormatsList);
+        renderPaginationUI('formats', filteredFormatsList.length, page, formatsPerPage, renderFormatsList);
     }
 
-    // สร้างป๊อปอัปรายละเอียด Model
+    // Modal แสดงรายละเอียดมาตรฐานเอกสาร
     function injectDetailModal() {
         if (document.getElementById('format-detail-modal')) return;
 
@@ -538,15 +635,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
                         
-                        <!-- ปุ่มลิงก์ไฟล์ -->
                         <a id="modal-file-link" href="#" target="_blank" class="hidden px-4 py-2 bg-[#213f8c] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-[#18306b] transition-colors items-center gap-2">
                             เปิดดูไฟล์
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                         </a>
-                        <!-- ข้อความแสดงเมื่อไม่มีไฟล์ -->
                         <span id="modal-no-file" class="hidden text-xs font-bold text-gray-400 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-md">ไม่มีไฟล์แนบ</span>
                     </div>
-
                 </div>
             </div>
         `;
@@ -557,10 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function openFormatDetails(formatId) {
         const detailModal = document.getElementById('format-detail-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        if (!detailModal) {
-            console.error("หา Modal ไม่เจอ!");
-            return;
-        }
+        if (!detailModal) return;
 
         const format = allFormatsList.find(f => f.format_id == formatId || f.id == formatId);
         if (!format) {
@@ -606,27 +697,23 @@ document.addEventListener("DOMContentLoaded", () => {
             if (usage.program) programName = usage.program.program_name || 'ไม่ระบุสาขา';
         }
 
-        // นำข้อมูลไปใส่ในหน้าจอ Modal
         document.getElementById('modal-format-name').innerText = format.document_name || format.format_name || 'ไม่ระบุชื่อ';
         document.getElementById('modal-version').innerText = format.version || 'v1.0';
         document.getElementById('modal-academic-year').innerText = `ปีการศึกษา ${format.academic_year || '-'}`;
-        document.getElementById('modal-faculty').innerText = facultyName; 
+        document.getElementById('modal-faculty').innerText = facultyName;
         document.getElementById('modal-major').innerText = programName;
 
         document.getElementById('modal-font').innerText = fontName;
-        // กรณีขนาดฟอนต์ ถ้ามีคำว่า pt ติดมาแล้วก็แสดงได้เลย ถ้าไม่มีค่อยเติม
         document.getElementById('modal-font-size').innerText = fontSize !== '-' && !fontSize.includes('pt') ? `${fontSize} pt` : fontSize;
         document.getElementById('modal-line-spacing').innerText = lineSpacing;
         document.getElementById('modal-margin-left').innerText = marginLeft;
         document.getElementById('modal-margin-right').innerText = marginRight;
         document.getElementById('modal-margin-top-bottom').innerText = `${marginTop} / ${marginBottom}`;
 
-        // จัดการปุ่มลิงก์เปิดไฟล์
         const fileLinkBtn = document.getElementById('modal-file-link');
         const noFileMsg = document.getElementById('modal-no-file');
         const mdViewer = document.getElementById('modal-md-viewer');
 
-        // ซ่อนกล่องดำ (ถ้าใน HTML ยังมีค้างไว้)
         if (mdViewer) mdViewer.classList.add('hidden');
 
         if (format.file_url && format.file_url.trim() !== "") {
@@ -638,11 +725,9 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
             noFileMsg.classList.add('hidden');
 
-            // ดึงไฟล์มาดาวน์โหลดลงเครื่อง
             fileLinkBtn.onclick = async (e) => {
                 e.preventDefault();
 
-                // เปลี่ยนปุ่มเป็นสถานะกำลังโหลด
                 const originalText = fileLinkBtn.innerHTML;
                 fileLinkBtn.innerHTML = `
                     กำลังโหลด... 
@@ -651,27 +736,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 fileLinkBtn.classList.add('opacity-80', 'cursor-wait');
 
                 try {
-                    // ใช้ Fetch ดึงข้อมูลไฟล์จาก Supabase
                     const response = await fetch(format.file_url);
                     const blob = await response.blob();
-
-                    // สร้าง URL จำลองในเครื่องเพื่อดาวน์โหลด
                     const downloadUrl = window.URL.createObjectURL(blob);
 
-                    // สร้างปุ่มลิงก์ที่มองไม่เห็นเพื่อสั่งโหลด
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = downloadUrl;
 
-                    // สกัดชื่อไฟล์จาก URL (หรือตั้งชื่อเริ่มต้นถ้าหาไม่เจอ)
                     let fileName = format.file_url.substring(format.file_url.lastIndexOf('/') + 1).split('?')[0];
                     a.download = decodeURIComponent(fileName) || `format_${format.format_id}`;
 
-                    // สั่งคลิกดาวน์โหลด
                     document.body.appendChild(a);
                     a.click();
 
-                    // เคลียร์หน่วยความจำ
                     window.URL.revokeObjectURL(downloadUrl);
                     document.body.removeChild(a);
                 } catch (error) {
@@ -683,14 +761,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     fileLinkBtn.classList.remove('opacity-80', 'cursor-wait');
                 }
             };
-        }
-        else {
+        } else {
             fileLinkBtn.classList.add('hidden');
             fileLinkBtn.classList.remove('flex');
             noFileMsg.classList.remove('hidden');
         }
 
-        // ส่วนจัดการการปิด Modal (เหมือนเดิม)
         const closeModal = () => {
             detailModal.classList.add('opacity-0');
             detailModal.querySelector('div').classList.add('scale-95');
@@ -706,7 +782,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 10);
     }
 
-    // โหลดข้อมูลคณะและสาขาสำหรับฟอร์ม
+    // ระบบฟอร์มเพิ่มมาตรฐานเอกสารใหม่ & อัปโหลดไฟล์
     function setDefaultAcademicYear() {
         const yearInput = document.getElementById('academic_year');
         if (!yearInput) return;
@@ -715,14 +791,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const currentMonth = currentDate.getMonth() + 1;
         let currentYear = currentDate.getFullYear();
 
-        // โลจิกปีการศึกษาไทย: ถ้าเป็นเดือนมกราคม - พฤษภาคม (ช่วงเทอม 2 หรือซัมเมอร์) 
-        // จะยังถือว่าเป็นปีการศึกษาของปีที่แล้วอยู่ (เช่น ต้นปี 69 จะเป็นปีการศึกษา 68)
         if (currentMonth < 6) {
             currentYear -= 1;
         }
 
         const thaiAcademicYear = currentYear + 543;
-
         yearInput.value = thaiAcademicYear;
     }
 
@@ -730,7 +803,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const facultySelect = document.getElementById('faculty');
         if (!facultySelect) return;
 
-        // เคลียร์ค่าเก่าและใส่ตัวเลือกเริ่มต้น
         facultySelect.innerHTML = '<option value="">-- กรุณาเลือกคณะ --</option>';
 
         const { data, error } = await supabaseClient.from('faculty').select('*');
@@ -739,7 +811,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // วนลูปนำชื่อคณะมาใส่ใน Dropdown
         data.forEach(fac => {
             const option = document.createElement('option');
             option.value = fac.faculty_id;
@@ -752,12 +823,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const majorSelect = document.getElementById('major');
         if (!majorSelect) return;
 
-        // เคลียร์ค่าเก่าและใส่ตัวเลือกเริ่มต้น
         majorSelect.innerHTML = '<option value="">-- กรุณาเลือกสาขา --</option>';
 
-        // สร้างคำสั่งดึงข้อมูลสาขา
         let query = supabaseClient.from('program').select('*');
-
         if (facultyId) {
             query = query.eq('faculty_id', facultyId);
         }
@@ -768,7 +836,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // วนลูปนำชื่อสาขามาใส่ใน Dropdown
         data.forEach(prog => {
             const option = document.createElement('option');
             option.value = prog.program_id;
@@ -777,7 +844,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // จับเหตุการณ์เมื่อผู้ใช้เปลี่ยนคณะ ให้โหลดสาขาใหม่ที่ตรงกัน
     const facultySelectDropdown = document.getElementById('faculty');
     if (facultySelectDropdown) {
         facultySelectDropdown.addEventListener('change', (e) => {
@@ -786,10 +852,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // คุมฟอร์มสร้างมาตรฐานใหม่ 
     const btnAddFormat = document.getElementById('btn-add-format');
     const btnCancelFormat = document.getElementById('btn-cancel-format');
-    const btnBackFormat = document.getElementById('btn-back-format'); 
+    const btnBackFormat = document.getElementById('btn-back-format');
     const formatsMainView = document.getElementById('formats-main-view');
     const addFormatContainer = document.getElementById('add-format-container');
 
@@ -801,7 +866,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             formatsMainView.classList.remove('hidden');
             addFormatContainer.classList.add('hidden');
-            document.getElementById('upload-format-form').reset();
+            const uploadForm = document.getElementById('upload-format-form');
+            if (uploadForm) uploadForm.reset();
             resetFileUploader();
         }
     }
@@ -829,23 +895,28 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         fileInput.addEventListener('change', function () { if (this.files.length > 0) handleFileSelect(this.files[0]); });
-        removeFileBtn.addEventListener('click', (e) => { e.preventDefault(); resetFileUploader(); });
+        if (removeFileBtn) removeFileBtn.addEventListener('click', (e) => { e.preventDefault(); resetFileUploader(); });
     }
 
     function handleFileSelect(file) {
-        fileNameDisplay.textContent = file.name;
-        uploadContent.classList.add('hidden');
-        filePreview.classList.remove('hidden');
-        filePreview.classList.add('flex');
+        if (fileNameDisplay) fileNameDisplay.textContent = file.name;
+        if (uploadContent) uploadContent.classList.add('hidden');
+        if (filePreview) {
+            filePreview.classList.remove('hidden');
+            filePreview.classList.add('flex');
+        }
     }
 
     function resetFileUploader() {
         if (fileInput) fileInput.value = '';
         if (uploadContent) uploadContent.classList.remove('hidden');
-        if (filePreview) { filePreview.classList.add('hidden'); filePreview.classList.remove('flex'); }
+        if (filePreview) {
+            filePreview.classList.add('hidden');
+            filePreview.classList.remove('flex');
+        }
     }
 
-    // --- ส่วนบันทึกข้อมูลลง Database ---
+    // บันทึกข้อมูลลง Database
     const btnSaveFormat = document.getElementById('btn-save-format');
     if (btnSaveFormat) {
         btnSaveFormat.addEventListener('click', async () => {
@@ -862,9 +933,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const marginTop = document.getElementById('rule_margin_top').value;
             const marginBottom = document.getElementById('rule_margin_bottom').value;
 
-            const fileInput = document.getElementById('file_input');
+            const fileInputEl = document.getElementById('file_input');
 
-            if (!formatName || !academicYear || !faculty || !major || (!fileInput.files || fileInput.files.length === 0)) {
+            if (!formatName || !academicYear || !faculty || !major || (!fileInputEl.files || fileInputEl.files.length === 0)) {
                 alert('กรุณากรอกข้อมูลหลักและอัปโหลดไฟล์ให้ครบถ้วน');
                 return;
             }
@@ -874,11 +945,10 @@ document.addEventListener("DOMContentLoaded", () => {
             btnSaveFormat.disabled = true;
 
             try {
-                // 1. อัปโหลดไฟล์
-                const file = fileInput.files[0];
+                // อัปโหลดไฟล์ขึ้น Supabase Storage
+                const file = fileInputEl.files[0];
                 const fileExt = file.name.split('.').pop();
                 const safeFileName = `format_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
-
                 const bucketName = 'format_templates';
 
                 const { error: uploadError } = await supabaseClient
@@ -895,7 +965,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const filePublicUrl = publicUrlData.publicUrl;
 
-                // 2. บันทึกข้อมูลหลัก
+                // บันทึกข้อมูลผ่าน RPC
                 const requirementsList = [
                     { category_name: 'ฟอนต์', requirement_details: font },
                     { category_name: 'ขนาดฟอนต์', requirement_details: `${fontSize} pt` },
@@ -916,7 +986,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 alert('บันทึกมาตรฐานและอัปโหลดไฟล์สำเร็จ!');
                 toggleFormatView(false);
-                loadFormats();
+                await loadFormats();
+                await loadAuditLogs();
 
             } catch (err) {
                 console.error("Save Format Error:", err);
@@ -928,6 +999,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // เริ่มต้นโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
     loadUsersAndRoles();
     loadAuditLogs();
     loadFormats();
